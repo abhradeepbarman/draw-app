@@ -13,7 +13,9 @@ const errorHandler = (
 ) => {
     let statusCode = 500;
     let message: any = "Internal Server Error";
-
+    
+    console.log("error", err)
+    
     if (err instanceof ZodError) {
         statusCode = 422;
         message = formatError(err);

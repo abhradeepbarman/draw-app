@@ -27,10 +27,11 @@ const authControllers = {
         try {
             const body = registerSchema.parse(req.body);
             const { name, email, password } = body;
-
+            console.log("start")
             const existingUser = await db.query.users.findFirst({
                 where: eq(users.email, email),
             });
+            console.log("existingUser", existingUser);
             if (existingUser) {
                 return res
                     .status(409)
