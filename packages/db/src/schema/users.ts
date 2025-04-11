@@ -5,6 +5,7 @@ const users = pgTable("users", {
     name: varchar("name").notNull(),
     email: varchar("email").notNull().unique(),
     password: varchar("password").notNull(),
+    refreshToken: varchar("refresh_token"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

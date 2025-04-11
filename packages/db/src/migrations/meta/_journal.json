@@ -15,6 +15,13 @@
       "when": 1744297369138,
       "tag": "0001_productive_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744385088750,
+      "tag": "0002_romantic_vance_astro",
+      "breakpoints": true
     }
   ]
 }

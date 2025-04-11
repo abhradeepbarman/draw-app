@@ -1,18 +1,18 @@
-import { NextFunction, Request, Response } from "express";
-import { registerSchema, loginSchema } from "@repo/common/schema";
-import { db } from "@repo/db";
-import { users, refreshTokens } from "@repo/db/schema";
-import { eq } from "drizzle-orm";
-import ResponseHandler from "../utils/responseHandler";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import config from "@repo/backend-common/config";
+import { loginSchema, registerSchema } from "@repo/common/schema";
+import { db } from "@repo/db";
+import { users } from "@repo/db/schema";
+import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import ResponseHandler from "../utils/responseHandler";
 
 const generateTokens = (userId: string) => {
-    const accessToken = jwt.sign({ userId }, config.ACCESS_SECRET, {
+    const accessToken = jwt.sign({ id: userId }, config.ACCESS_SECRET, {
         expiresIn: "15m",
     });
-    const refreshToken = jwt.sign({ userId }, config.REFRESH_SECRET, {
+    const refreshToken = jwt.sign({ id: userId }, config.REFRESH_SECRET, {
         expiresIn: "7d",
     });
     return { accessToken, refreshToken };
@@ -27,11 +27,11 @@ const authControllers = {
         try {
             const body = registerSchema.parse(req.body);
             const { name, email, password } = body;
-            console.log("start")
+
             const existingUser = await db.query.users.findFirst({
                 where: eq(users.email, email),
             });
-            console.log("existingUser", existingUser);
+
             if (existingUser) {
                 return res
                     .status(409)
@@ -51,9 +51,12 @@ const authControllers = {
 
             const { accessToken, refreshToken } = generateTokens(newUser?.id!);
 
-            await db.insert(refreshTokens).values({
-                token: refreshToken,
-            });
+            await db
+                .update(users)
+                .set({
+                    refreshToken,
+                })
+                .where(eq(users.id, newUser?.id!));
 
             return res.status(201).send(
                 ResponseHandler(201, "User Registered Successfully", {
@@ -94,9 +97,12 @@ const authControllers = {
 
             const { accessToken, refreshToken } = generateTokens(user.id);
 
-            await db.insert(refreshTokens).values({
-                token: refreshToken,
-            });
+            await db
+                .update(users)
+                .set({
+                    refreshToken,
+                })
+                .where(eq(users.id, user.id));
 
             return res.status(200).send(
                 ResponseHandler(200, "User logged in successfully", {
@@ -109,22 +115,14 @@ const authControllers = {
         }
     },
 
-    async logout(
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<any> {
+    async logout(req: any, res: Response, next: NextFunction): Promise<any> {
         try {
-            const token = req.headers.authorization?.split(" ")[1];
-            if (!token) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "Unauthorized"));
-            }
+            const id = req.user.id;
 
             await db
-                .delete(refreshTokens)
-                .where(eq(refreshTokens.token, token));
+                .update(users)
+                .set({ refreshToken: null })
+                .where(eq(users.id, id));
 
             return res
                 .status(200)
@@ -140,44 +138,34 @@ const authControllers = {
         next: NextFunction
     ): Promise<any> {
         try {
+            // TODO: complete the logic
             const token = req.headers.authorization?.split(" ")[1];
 
             if (!token) {
                 return res
                     .status(401)
-                    .send(ResponseHandler(401, "Refresh token missing"));
+                    .send(ResponseHandler(401, "Unauthorized access"));
             }
 
-            const storedToken = await db.query.refreshTokens.findFirst({
-                where: eq(refreshTokens.token, token),
-            });
-
-            if (!storedToken) {
-                return res
-                    .status(403)
-                    .send(ResponseHandler(403, "Invalid refresh token"));
-            }
-
-            // Verify the refresh token
             const decoded = jwt.verify(token, config.REFRESH_SECRET) as {
-                userId: string;
+                id: string;
             };
 
-            const { accessToken, refreshToken } = generateTokens(
-                decoded.userId
-            );
+            if (!decoded) {
+                return res
+                    .status(401)
+                    .send(ResponseHandler(401, "Unauthorized access"));
+            }
 
-            await db
-                .delete(refreshTokens)
-                .where(eq(refreshTokens.token, token));
-            await db.insert(refreshTokens).values({ token: refreshToken });
+            const user = await db.query.users.findFirst({
+                where: eq(users.id, decoded.id),
+            });
 
-            return res.status(200).send(
-                ResponseHandler(200, "Token refreshed successfully", {
-                    accessToken,
-                    refreshToken,
-                })
-            );
+            if (!user) {
+                return res
+                    .status(401)
+                    .send(ResponseHandler(401, "Unauthorized access"));
+            }
         } catch (error) {
             return next(error);
         }
