@@ -138,7 +138,6 @@ const authControllers = {
         next: NextFunction
     ): Promise<any> {
         try {
-            // TODO: complete the logic
             const token = req.headers.authorization?.split(" ")[1];
 
             if (!token) {
@@ -166,6 +165,20 @@ const authControllers = {
                     .status(401)
                     .send(ResponseHandler(401, "Unauthorized access"));
             }
+
+            const { accessToken, refreshToken } = generateTokens(user.id);
+
+            await db
+                .update(users)
+                .set({ refreshToken: refreshToken })
+                .where(eq(users.id, user.id));
+
+            return res.status(200).send(
+                ResponseHandler(200, "Refresh token generated", {
+                    accessToken,
+                    refreshToken,
+                })
+            );
         } catch (error) {
             return next(error);
         }
