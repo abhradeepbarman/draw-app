@@ -1,2 +1,2 @@
-export { default as registerSchema } from "./register.schema";
-export { default as loginSchema } from "./login.schema";
+export { default as registerSchema } from "./auth/register.schema";
+export { default as loginSchema } from "./auth/login.schema";
