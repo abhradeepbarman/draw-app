@@ -22,6 +22,13 @@
       "when": 1744385088750,
       "tag": "0002_romantic_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744387428885,
+      "tag": "0003_burly_guardsmen",
+      "breakpoints": true
     }
   ]
 }
