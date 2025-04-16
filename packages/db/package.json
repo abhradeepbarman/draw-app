@@ -11,11 +11,11 @@
     "description": "",
     "dependencies": {
         "drizzle-orm": "^0.41.0",
-        "postgres": "^3.4.5"
+        "postgres": "^3.4.5",
+        "@repo/backend-common": "workspace:*"
     },
     "devDependencies": {
-        "drizzle-kit": "^0.30.6",
-        "@repo/backend-common": "workspace:*"
+        "drizzle-kit": "^0.30.6"
     },
     "exports": {
         ".": "./src/index.ts",

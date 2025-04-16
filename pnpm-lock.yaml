@@ -20,6 +20,15 @@ importers:
 
   apps/http-backend:
     dependencies:
+      '@repo/backend-common':
+        specifier: workspace:*
+        version: link:../../packages/backend-common
+      '@repo/common':
+        specifier: workspace:*
+        version: link:../../packages/common
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       bcrypt:
         specifier: ^5.1.1
         version: 5.1.1
@@ -39,15 +48,6 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/backend-common':
-        specifier: workspace:*
-        version: link:../../packages/backend-common
-      '@repo/common':
-        specifier: workspace:*
-        version: link:../../packages/common
-      '@repo/db':
-        specifier: workspace:*
-        version: link:../../packages/db
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -94,6 +94,9 @@ importers:
 
   apps/ws-backend:
     dependencies:
+      '@repo/backend-common':
+        specifier: workspace:*
+        version: link:../../packages/backend-common
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
@@ -104,9 +107,6 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
     devDependencies:
-      '@repo/backend-common':
-        specifier: workspace:*
-        version: link:../../packages/backend-common
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -151,6 +151,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@repo/backend-common':
+        specifier: workspace:*
+        version: link:../backend-common
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(gel@2.0.1)(postgres@3.4.5)
@@ -158,9 +161,6 @@ importers:
         specifier: ^3.4.5
         version: 3.4.5
     devDependencies:
-      '@repo/backend-common':
-        specifier: workspace:*
-        version: link:../backend-common
       drizzle-kit:
         specifier: ^0.30.6
         version: 0.30.6
