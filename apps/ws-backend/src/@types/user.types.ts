@@ -2,7 +2,7 @@ import { WebSocket } from "ws";
 
 interface User {
     userId: string;
-    room: string[];
+    rooms: string[];
     ws: WebSocket;
 }
 

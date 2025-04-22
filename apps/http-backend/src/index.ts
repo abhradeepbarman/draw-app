@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from "express";
 import config from "@repo/backend-common/config";
 import authRoutes from "./routes/auth.routes";
 import roomRoutes from "./routes/room.routes";
+import chatRoutes from "./routes/chat.routes";
 import errorHandler from "./middlewares/errorHandler";
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 /** Routes */
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/room", roomRoutes);
+app.use("/api/v1/chat", chatRoutes);
 
 /** Custom error handling  */
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
