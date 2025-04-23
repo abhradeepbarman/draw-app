@@ -3,7 +3,7 @@ import React from 'react'
 const page = () => {
   return (
     <div>
-      Excalidraw Landing page
+      Login
     </div>
   )
 }
