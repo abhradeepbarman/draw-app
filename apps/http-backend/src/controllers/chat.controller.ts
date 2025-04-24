@@ -1,7 +1,7 @@
 import { db } from "@repo/db";
-import { chats, rooms } from "@repo/db/schema";
+import { chats, projects } from "@repo/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import ResponseHandler from "../utils/responseHandler";
 
 const chatController = {
@@ -11,10 +11,10 @@ const chatController = {
         next: NextFunction
     ): Promise<any> {
         try {
-            const { roomId } = req.params;
+            const { projectId } = req.params;
 
-            const room = await db.query.rooms.findFirst({
-                where: eq(rooms.id, roomId!),
+            const room = await db.query.projects.findFirst({
+                where: eq(projects.id, projectId!),
             });
 
             if (!room) {
@@ -24,7 +24,7 @@ const chatController = {
             }
 
             const messages = await db.query.chats.findMany({
-                where: eq(chats.roomId, roomId!),
+                where: eq(chats.projectId, projectId!),
                 limit: 50,
                 orderBy: desc(chats.createdAt),
             });

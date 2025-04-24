@@ -1,7 +1,7 @@
+import { relations } from "drizzle-orm";
 import { pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import users from "./users";
-import rooms from "./rooms";
-import { relations } from "drizzle-orm";
+import projects from "./projects";
 
 const chats = pgTable("chats", {
     id: uuid("id").notNull().defaultRandom().primaryKey(),
@@ -12,9 +12,9 @@ const chats = pgTable("chats", {
             onUpdate: "no action",
             onDelete: "cascade",
         }),
-    roomId: uuid("room_id")
+    projectId: uuid("project_id")
         .notNull()
-        .references(() => rooms.id, {
+        .references(() => projects.id, {
             onUpdate: "no action",
             onDelete: "cascade",
         }),
@@ -27,9 +27,9 @@ export const chatsRelations = relations(chats, ({ one }) => ({
         fields: [chats.userId],
         references: [users.id],
     }),
-    room: one(rooms, {
-        fields: [chats.roomId],
-        references: [rooms.id],
+    project: one(projects, {
+        fields: [chats.projectId],
+        references: [projects.id],
     }),
 }));
 

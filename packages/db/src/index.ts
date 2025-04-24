@@ -1,18 +1,18 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import config from "@repo/backend-common/config";
-import { chats, rooms, users } from "./schema";
+import { chats, projects, users } from "./schema";
 import { usersRelations } from "./schema/users";
-import { roomsRelations } from "./schema/rooms";
 import { chatsRelations } from "./schema/chats";
+import { projectsRelations } from "./schema/projects";
 
 const schema = {
     users,
-    rooms,
+    projects,
     chats,
 
     usersRelations,
-    roomsRelations,
+    projectsRelations,
     chatsRelations,
 };
 

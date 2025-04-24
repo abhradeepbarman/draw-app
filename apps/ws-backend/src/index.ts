@@ -2,8 +2,9 @@ import config from "@repo/backend-common/config";
 import jwt from "jsonwebtoken";
 import { WebSocketServer } from "ws";
 import User from "./@types/user.types";
-import {db} from "@repo/db";
-import { chats } from "@repo/db/schema";
+import { db } from "@repo/db";
+import { chats, projects } from "@repo/db/schema";
+import { eq } from "drizzle-orm";
 
 const wss = new WebSocketServer({ port: Number(config.PORT) });
 
@@ -31,13 +32,19 @@ const checkUser = (token: string) => {
 wss.on("connection", function connection(ws, request) {
     const url = request.url;
     if (!url) {
+        ws.close();
         return;
     }
 
     const queryParams = new URLSearchParams(url.split("?")[1]);
-    const token = queryParams.get("token");
+    const token = queryParams?.get("token");
 
-    const userId = checkUser(token!);
+    if (!token) {
+        ws.close();
+        return;
+    }
+
+    const userId = checkUser(token);
     if (!userId) {
         ws.close();
         return;
@@ -50,20 +57,50 @@ wss.on("connection", function connection(ws, request) {
     });
 
     ws.on("message", async function message(data) {
-        const parsedData = JSON.parse(data.toString());
+        const jsonString = typeof data === "string" ? data : data.toString();
+        let parsedData = JSON.parse(jsonString);
+
+        if (typeof parsedData === "string") {
+            parsedData = JSON.parse(parsedData);
+        }
 
         if (parsedData.type === "join_room") {
+            /**
+             * {
+             *  type: "join_room",
+             *  roomId: string
+             * }
+             */
+
             const user = users.find((user) => user.ws === ws);
             if (!user) {
                 return;
             }
 
-            //TODO: roomID is valid or not
+            // check if room exists
+            const room = await db.query.projects.findFirst({
+                where: eq(projects.id, parsedData.roomId),
+            });
+
+            if (!room) {
+                return;
+            }
+
+            // check if already joined
+            if (user.rooms.includes(parsedData.roomId)) {
+                return;
+            }
 
             user.rooms.push(parsedData.roomId);
         }
 
         if (parsedData.type === "leave_room") {
+            /**
+             * {
+             *  type: "leave_room",
+             *  roomId: string
+             * }
+             */
             const user = users.find((user) => user.ws === ws);
             if (!user) {
                 return;
@@ -75,17 +112,33 @@ wss.on("connection", function connection(ws, request) {
         }
 
         if (parsedData.type === "chat") {
+            /**
+             * {
+             *  type: "chat",
+             *  roomId: string,
+             *  message: string
+             * }
+             */
             const roomId = parsedData.roomId;
             const message = parsedData.message;
 
+            // check if room exists
+            const room = await db.query.projects.findFirst({
+                where: eq(projects.id, parsedData.roomId),
+            });
+
+            if (!room) {
+                return;
+            }
+
             await db.insert(chats).values({
-                roomId,
+                projectId: roomId,
                 userId,
-                message
-            })
+                message,
+            });
 
             users.forEach((user) => {
-                if (user.rooms.includes(roomId)) {
+                if (user.rooms.includes(roomId) && user.ws !== ws) {
                     user.ws.send(
                         JSON.stringify({
                             type: "chat",
