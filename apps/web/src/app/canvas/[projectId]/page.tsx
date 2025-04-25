@@ -7,7 +7,9 @@ const page = ({
         projectId: string;
     };
 }) => {
-    return <div>Canvas project - {params.projectId}</div>;
+    return <div>
+        Canvas {params.projectId}
+    </div>;
 };
 
 export default page;
