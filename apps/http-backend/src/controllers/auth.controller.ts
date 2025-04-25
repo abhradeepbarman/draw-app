@@ -58,12 +58,21 @@ const authControllers = {
                 })
                 .where(eq(users.id, newUser?.id!));
 
-            return res.status(201).send(
-                ResponseHandler(201, "User Registered Successfully", {
-                    accessToken,
-                    refreshToken,
+            return res
+                .status(201)
+                .cookie("accessToken", accessToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                    maxAge: 15 * 60 * 1000,
                 })
-            );
+                .cookie("refreshToken", refreshToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                })
+                .send(ResponseHandler(201, "User Registered Successfully"));
         } catch (error) {
             next(error);
         }
@@ -104,12 +113,21 @@ const authControllers = {
                 })
                 .where(eq(users.id, user.id));
 
-            return res.status(200).send(
-                ResponseHandler(200, "User logged in successfully", {
-                    accessToken,
-                    refreshToken,
+            return res
+                .status(200)
+                .cookie("accessToken", accessToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict",
+                    maxAge: 15 * 60 * 1000,
                 })
-            );
+                .cookie("refreshToken", refreshToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict",
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                })
+                .send(ResponseHandler(200, "User logged in successfully"));
         } catch (error) {
             return next(error);
         }
@@ -126,6 +144,8 @@ const authControllers = {
 
             return res
                 .status(200)
+                .clearCookie("accessToken")
+                .clearCookie("refreshToken")
                 .send(ResponseHandler(200, "User logged out successfully"));
         } catch (error) {
             return next(error);
@@ -173,12 +193,21 @@ const authControllers = {
                 .set({ refreshToken: refreshToken })
                 .where(eq(users.id, user.id));
 
-            return res.status(200).send(
-                ResponseHandler(200, "Refresh token generated", {
-                    accessToken,
-                    refreshToken,
+            return res
+                .status(200)
+                .cookie("accessToken", accessToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                    maxAge: 15 * 60 * 1000,
                 })
-            );
+                .cookie("refreshToken", refreshToken, {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "none",
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                })
+                .send(ResponseHandler(200, "Refresh token generated"));
         } catch (error) {
             return next(error);
         }

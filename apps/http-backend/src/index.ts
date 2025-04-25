@@ -4,13 +4,18 @@ import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/project.routes";
 import chatRoutes from "./routes/chat.routes";
 import errorHandler from "./middlewares/errorHandler";
-import cors from "cors"
+import cors from "cors";
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors());
+app.use(
+    cors({
+        credentials: true,
+        origin: config.FRONTEND_URL,
+    })
+);
 
 /** Routes */
 app.use("/api/v1/auth", authRoutes);

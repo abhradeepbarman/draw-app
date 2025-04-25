@@ -1,11 +1,18 @@
-import React from 'react'
+"use client";
+import { Button } from "@repo/ui/button";
 
 const page = () => {
-  return (
-    <div>
-      Dashboard
-    </div>
-  )
-}
+    return (
+        <div>
+            <Button
+                onclick={() => {
+                    console.log("create canvas");
+                }}
+            >
+                Create Canvas
+            </Button>
+        </div>
+    );
+};
 
-export default page
+export default page;
