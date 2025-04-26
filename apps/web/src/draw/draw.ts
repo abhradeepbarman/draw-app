@@ -1,13 +1,21 @@
 import { Shape } from "@/@types/shape.types";
+import { getAllChats, sendChat } from "@/api/api";
+import axiosInstance from "@/lib/axios";
 
-let existingShapes: Shape[] = [];
-
-function initDraw(
+async function initDraw(
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
-    selectedShape: Shape["type"]
+    selectedShape: Shape["type"],
+    projectId: string
 ) {
+    const response = await getAllChats(projectId);
+    if (!response) return;
+    const existingShapes: Shape[] = response?.data?.map((message: any) =>
+        JSON.parse(message.message)
+    );
+
     ctx.strokeStyle = "white";
+    clearCanvas(canvas, ctx, existingShapes);
 
     let startX = 0;
     let startY = 0;
@@ -47,18 +55,20 @@ function initDraw(
         }
     };
 
-    const mouseUpHandler = (e: MouseEvent) => {
+    const mouseUpHandler = async (e: MouseEvent) => {
         if (!clicked) return;
 
         const rect = canvas.getBoundingClientRect();
         const endX = e.clientX - rect.left;
         const endY = e.clientY - rect.top;
 
+        let message;
+
         if (selectedShape === "rect") {
             const width = endX - startX;
             const height = endY - startY;
 
-            existingShapes.push({
+            message = JSON.stringify({
                 type: "rect",
                 startX,
                 startY,
@@ -70,14 +80,14 @@ function initDraw(
                 Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
             );
 
-            existingShapes.push({
+            message = JSON.stringify({
                 type: "circle",
                 startX,
                 startY,
                 radius,
             });
         } else if (selectedShape === "line") {
-            existingShapes.push({
+            message = JSON.stringify({
                 type: "line",
                 startX,
                 startY,
@@ -85,6 +95,11 @@ function initDraw(
                 endY,
             });
         }
+
+        if (!message) return;
+
+        await sendChat({ projectId, message });
+        existingShapes.push(JSON.parse(message));
         clicked = false;
     };
 
@@ -106,7 +121,7 @@ function clearCanvas(
 ) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    existingShapes.forEach((shape) => {
+    existingShapes?.forEach((shape) => {
         if (shape.type === "rect" && shape.width && shape.height) {
             ctx.beginPath();
             ctx.strokeRect(

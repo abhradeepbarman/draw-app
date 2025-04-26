@@ -5,5 +5,6 @@ import auth from "../middlewares/auth";
 const router: Router = Router();
 
 router.get("/all/:projectId", auth, chatController.getAllChats);
+router.post("/:projectId", auth, chatController.sendChat);
 
 export default router;

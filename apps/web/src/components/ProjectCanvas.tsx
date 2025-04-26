@@ -4,7 +4,7 @@ import SideBar from "@/components/Sidebar";
 import initDraw from "@/draw/draw";
 import React, { useRef, useEffect, useState } from "react";
 
-const ProjectCanvas = () => {
+const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedShape, setSelectedShape] = useState<Shape["type"]>("rect");
 
@@ -15,9 +15,16 @@ const ProjectCanvas = () => {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        const cleanup = initDraw(canvas, ctx, selectedShape);
+        let cleanup: () => void = () => {};
+        initDraw(canvas, ctx, selectedShape, projectId).then((fn) => {
+            cleanup = fn!;
+        });
 
-        return cleanup;
+        return () => {
+            if (cleanup) {
+                cleanup();
+            }
+        };
     }, [selectedShape]);
 
     return (

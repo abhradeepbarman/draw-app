@@ -13,7 +13,7 @@ const Page = async ({
 
     return (
         <div>
-            <ProjectCanvas />
+            <ProjectCanvas projectId={projectId} />
         </div>
     );
 };

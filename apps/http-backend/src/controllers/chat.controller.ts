@@ -42,6 +42,35 @@ const chatController = {
             return next(error);
         }
     },
+
+    async sendChat(req: any, res: Response, next: NextFunction): Promise<any> {
+        try {
+            const { projectId } = req.params;
+            const { message } = req.body;
+            const { id: userId } = req.user;
+
+            const projectDetails = await db.query.projects.findFirst({
+                where: eq(projects.id, projectId!),
+            });
+
+            if (!projectDetails) {
+                return res
+                    .status(404)
+                    .send(ResponseHandler(404, "Room not found"));
+            }
+
+            const [newChat] = await db
+                .insert(chats)
+                .values({ projectId, message, userId })
+                .returning();
+
+            return res
+                .status(201)
+                .send(ResponseHandler(201, "Chat sent successfully", newChat));
+        } catch (error) {
+            return next(error);
+        }
+    },
 };
 
 export default chatController;
