@@ -1,15 +1,21 @@
+import ProjectCanvas from "@/components/ProjectCanvas";
 import React from "react";
+import SideBar from "../../../components/Sidebar";
 
-const page = ({
+const Page = async ({
     params,
 }: {
     params: {
         projectId: string;
     };
 }) => {
-    return <div>
-        Canvas {params.projectId}
-    </div>;
+    const { projectId } = await params;
+
+    return (
+        <div>
+            <ProjectCanvas />
+        </div>
+    );
 };
 
-export default page;
+export default Page;

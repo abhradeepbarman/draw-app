@@ -5,12 +5,13 @@ import CustomErrorHandler from "../utils/customErrorHandler";
 
 const auth = async (req: any, res: Response, next: NextFunction) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
+        const token =
+            req.headers.authorization?.split(" ")[1] ||
+            req.cookies["accessToken"];
+
+        if (!token) {
             next(CustomErrorHandler.unAuthorized("Unauthorized Access"));
         }
-
-        const token = authHeader?.split(" ")[1];
 
         const user = jwt.verify(token!, config.ACCESS_SECRET);
         if (!user) {

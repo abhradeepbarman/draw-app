@@ -12,9 +12,12 @@ const projectControllers = {
         try {
             const { id } = req.user;
 
-            const [newRoom] = await db.insert(projects).values({
-                adminId: id,
-            });
+            const [newRoom] = await db
+                .insert(projects)
+                .values({
+                    adminId: id,
+                })
+                .returning();
 
             return res
                 .status(201)
