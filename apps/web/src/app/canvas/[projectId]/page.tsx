@@ -1,6 +1,4 @@
 import ProjectCanvas from "@/components/ProjectCanvas";
-import React from "react";
-import SideBar from "../../../components/Sidebar";
 
 const Page = async ({
     params,

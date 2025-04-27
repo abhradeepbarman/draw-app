@@ -20,6 +20,7 @@
     "dependencies": {
         "@repo/backend-common": "workspace:*",
         "@repo/db": "workspace:*",
+        "cookie": "^1.0.2",
         "dotenv": "^16.4.7",
         "drizzle-orm": "^0.41.0",
         "jsonwebtoken": "^9.0.2",

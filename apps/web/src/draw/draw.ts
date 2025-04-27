@@ -1,15 +1,26 @@
 import { Shape } from "@/@types/shape.types";
 import { getAllChats, sendChat } from "@/api/api";
-import axiosInstance from "@/lib/axios";
 
 async function initDraw(
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
     selectedShape: Shape["type"],
-    projectId: string
+    projectId: string,
+    ws: WebSocket
 ) {
+    ws.onmessage = (event) => {
+        clearCanvas(canvas, ctx, existingShapes);
+        const parsedData = JSON.parse(event.data);
+
+        if (parsedData.type == "chat") {
+            existingShapes.push(parsedData.message);
+        }
+    };
+
+    // fetch old chats
     const response = await getAllChats(projectId);
     if (!response) return;
+
     const existingShapes: Shape[] = response?.data?.map((message: any) =>
         JSON.parse(message.message)
     );
@@ -99,6 +110,12 @@ async function initDraw(
         if (!message) return;
 
         await sendChat({ projectId, message });
+        const stringifiedMessage = JSON.stringify({
+            type: "chat",
+            roomId: projectId,
+            message: JSON.parse(message),
+        });
+        ws.send(stringifiedMessage);
         existingShapes.push(JSON.parse(message));
         clicked = false;
     };

@@ -5,6 +5,7 @@ import User from "./@types/user.types";
 import { db } from "@repo/db";
 import { chats, projects } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
+import { parse } from "cookie";
 
 const wss = new WebSocketServer({ port: Number(config.PORT) });
 
@@ -36,8 +37,10 @@ wss.on("connection", function connection(ws, request) {
         return;
     }
 
-    const queryParams = new URLSearchParams(url.split("?")[1]);
-    const token = queryParams?.get("token");
+    const cookies = parse(request.headers.cookie || "");
+    const token = cookies.accessToken;
+
+    console.log("access token", token);
 
     if (!token) {
         ws.close();
@@ -55,6 +58,8 @@ wss.on("connection", function connection(ws, request) {
         rooms: [],
         ws,
     });
+
+    console.log("users", users);
 
     ws.on("message", async function message(data) {
         const jsonString = typeof data === "string" ? data : data.toString();

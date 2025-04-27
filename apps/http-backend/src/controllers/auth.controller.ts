@@ -10,7 +10,7 @@ import ResponseHandler from "../utils/responseHandler";
 
 const generateTokens = (userId: string) => {
     const accessToken = jwt.sign({ id: userId }, config.ACCESS_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "1h",
     });
     const refreshToken = jwt.sign({ id: userId }, config.REFRESH_SECRET, {
         expiresIn: "7d",
@@ -119,7 +119,7 @@ const authControllers = {
                     httpOnly: true,
                     secure: true,
                     sameSite: "strict",
-                    maxAge: 15 * 60 * 1000,
+                    maxAge: 10 * 1000,
                 })
                 .cookie("refreshToken", refreshToken, {
                     httpOnly: true,
@@ -158,7 +158,7 @@ const authControllers = {
         next: NextFunction
     ): Promise<any> {
         try {
-            const token = req.headers.authorization?.split(" ")[1];
+            const token = req.cookies.refreshToken;
 
             if (!token) {
                 return res

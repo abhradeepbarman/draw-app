@@ -10,51 +10,36 @@ const axiosInstance = axios.create({
 
 const refreshAccessToken = async () => {
     try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        const response = await axios.post(
+        await axios.post(
             `${process.env.NEXT_PUBLIC_HTTP_BACKEND_URL!}/api/v1/auth/refresh`,
+            {},
             {
-                refreshToken,
+                withCredentials: true,
             }
         );
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
-        return accessToken;
+
+        return true;
     } catch (error) {
-        console.error("Failed to refresh token:", error);
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
         window.location.href = "/login";
         return null;
     }
 };
-
-axiosInstance.interceptors.request.use(
-    (config) => {
-        const accessToken = localStorage.getItem("accessToken");
-        if (accessToken) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
 
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response.status === 401 && !originalRequest._retry) {
+        if (error.response.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
             const newAccessToken = await refreshAccessToken();
 
+            if (!newAccessToken) return Promise.reject(error);
+
             if (newAccessToken) {
-                originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-                return axiosInstance(originalRequest);
+                return axiosInstance(originalRequest, {
+                    withCredentials: true,
+                });
             }
         }
 
