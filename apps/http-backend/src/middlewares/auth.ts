@@ -11,15 +11,15 @@ const auth = async (req: any, res: Response, next: NextFunction) => {
             req.cookies["accessToken"];
 
         if (!token) {
-            return res
-                .status(401)
+            res
+                .status(403)
                 .send(ResponseHandler(401, "Unauthorized Access"));
         }
 
         const user = jwt.verify(token!, config.ACCESS_SECRET);
         if (!user) {
-            return res
-                .status(401)
+            res
+                .status(403)
                 .send(ResponseHandler(401, "Unauthorized Access"));
         }
 

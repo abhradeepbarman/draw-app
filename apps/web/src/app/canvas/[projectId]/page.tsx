@@ -8,6 +8,7 @@ const Page = async ({
     };
 }) => {
     const { projectId } = await params;
+    console.log("projectId", projectId);
 
     return <ProjectCanvas projectId={projectId} />;
 };

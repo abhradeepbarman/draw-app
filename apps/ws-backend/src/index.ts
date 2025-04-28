@@ -26,6 +26,7 @@ const checkUser = (token: string) => {
 
         return decoded.id;
     } catch (error) {
+        console.log(error);
         return null;
     }
 };
@@ -77,26 +78,30 @@ wss.on("connection", function connection(ws, request) {
              * }
              */
 
-            const user = users.find((user) => user.ws === ws);
-            if (!user) {
-                return;
+            try {
+                const user = users.find((user) => user.ws === ws);
+                if (!user) {
+                    return;
+                }
+
+                // check if room exists
+                const room = await db.query.projects.findFirst({
+                    where: eq(projects.id, parsedData.roomId),
+                });
+
+                if (!room) {
+                    return;
+                }
+
+                // check if already joined
+                if (user.rooms.includes(parsedData.roomId)) {
+                    return;
+                }
+
+                user.rooms.push(parsedData.roomId);
+            } catch (error) {
+                console.log(error);
             }
-
-            // check if room exists
-            const room = await db.query.projects.findFirst({
-                where: eq(projects.id, parsedData.roomId),
-            });
-
-            if (!room) {
-                return;
-            }
-
-            // check if already joined
-            if (user.rooms.includes(parsedData.roomId)) {
-                return;
-            }
-
-            user.rooms.push(parsedData.roomId);
         }
 
         if (parsedData.type === "leave_room") {
@@ -106,14 +111,18 @@ wss.on("connection", function connection(ws, request) {
              *  roomId: string
              * }
              */
-            const user = users.find((user) => user.ws === ws);
-            if (!user) {
-                return;
-            }
+            try {
+                const user = users.find((user) => user.ws === ws);
+                if (!user) {
+                    return;
+                }
 
-            user.rooms = user.rooms.filter(
-                (roomId) => roomId !== parsedData.roomId
-            );
+                user.rooms = user.rooms.filter(
+                    (roomId) => roomId !== parsedData.roomId
+                );
+            } catch (error) {
+                console.log(error);
+            }
         }
 
         if (parsedData.type === "chat") {
@@ -124,39 +133,37 @@ wss.on("connection", function connection(ws, request) {
              *  message: string
              * }
              */
-            const roomId = parsedData.roomId;
-            const message = parsedData.message;
+            try {
+                const roomId = parsedData.roomId;
+                const message = parsedData.message;
 
-            // check if room exists
-            const room = await db.query.projects.findFirst({
-                where: eq(projects.id, parsedData.roomId),
-            });
+                // check if room exists
+                const room = await db.query.projects.findFirst({
+                    where: eq(projects.id, parsedData.roomId),
+                });
 
-            if (!room) {
-                return;
-            }
-
-            await db.insert(chats).values({
-                projectId: roomId,
-                userId,
-                message,
-            });
-
-            users.forEach((user) => {
-                if (user.rooms.includes(roomId) && user.ws !== ws) {
-                    user.ws.send(
-                        JSON.stringify({
-                            type: "chat",
-                            roomId,
-                            message,
-                        })
-                    );
+                if (!room) {
+                    return;
                 }
-            });
+
+                users.forEach((user) => {
+                    if (user.rooms.includes(roomId) && user.ws !== ws) {
+                        user.ws.send(
+                            JSON.stringify({
+                                type: "chat",
+                                roomId,
+                                message,
+                            })
+                        );
+                    }
+                });
+            } catch (error) {
+                console.log(error);
+            }
         }
     });
 
-    ws.on("close", function close() {
+    ws.on("close", function close(e) {
         const user = users.find((user) => user.ws === ws);
         if (!user) {
             return;

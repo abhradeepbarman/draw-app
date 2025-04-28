@@ -1,4 +1,6 @@
 "use client";
+import { useSocket } from "@/hooks/useSocket";
+import axiosInstance from "@/lib/axios";
 import React, { useEffect, useRef } from "react";
 
 interface Shape {
@@ -11,14 +13,51 @@ interface Shape {
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const { socket } = useSocket();
 
-    const existingShapes: Shape[] = [];
+    let existingShapes: Shape[] = [];
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
+
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
+
+        if (!socket) return;
+
+        getPreviousChats().then((res) => {
+            res.length > 0 &&
+                res.map((item: any) => {
+                    existingShapes.push(JSON.parse(item?.message));
+                });
+
+            clearCanvas(canvas, ctx);
+        });
+
+        const sendJoinRoom = () => {
+            socket.send(
+                JSON.stringify({
+                    type: "join_room",
+                    roomId: projectId,
+                })
+            );
+        };
+
+        if (socket.readyState === WebSocket.OPEN) {
+            sendJoinRoom();
+        } else {
+            socket.addEventListener("open", sendJoinRoom, { once: true });
+        }
+
+        socket.onmessage = (e) => {
+            const incomingMessage = JSON.parse(e.data);
+
+            if (incomingMessage.type === "chat") {
+                existingShapes.push(incomingMessage.message);
+                clearCanvas(canvas, ctx);
+            }
+        };
 
         ctx.strokeStyle = "white";
 
@@ -59,14 +98,27 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             const width = endX - startX;
             const height = endY - startY;
 
-            existingShapes.push({
+            const message: Shape = {
                 type: "rect",
                 startX,
                 startY,
                 width,
                 height,
+            };
+            existingShapes.push(message);
+            const messageString = JSON.stringify(message);
+            sendShape(messageString).then(() => {
+                console.log("shape sent");
             });
             clearCanvas(canvas, ctx);
+
+            socket.send(
+                JSON.stringify({
+                    type: "chat",
+                    roomId: projectId,
+                    message,
+                })
+            );
         };
 
         canvas.addEventListener("mousedown", mouseDownHandler);
@@ -78,7 +130,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             canvas.removeEventListener("mousemove", mouseMoveHandler);
             canvas.removeEventListener("mouseup", mouseUpHandler);
         };
-    }, []);
+    }, [socket]);
 
     function clearCanvas(
         canvas: HTMLCanvasElement,
@@ -93,6 +145,27 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 ctx.stroke();
             }
         });
+    }
+
+    async function getPreviousChats() {
+        try {
+            const { data } = await axiosInstance.get(`/chat/all/${projectId}`);
+            console.log("extracted data", data);
+            return data?.data;
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    async function sendShape(message: string) {
+        try {
+            await axiosInstance.post(`/chat/${projectId}`, {
+                message,
+            });
+            return true;
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     return <canvas width={2000} height={1000} ref={canvasRef}></canvas>;
