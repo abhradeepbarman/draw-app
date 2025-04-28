@@ -2,6 +2,7 @@ import config from "@repo/backend-common/config";
 import { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import CustomErrorHandler from "../utils/customErrorHandler";
+import ResponseHandler from "../utils/responseHandler";
 
 const auth = async (req: any, res: Response, next: NextFunction) => {
     try {
@@ -10,12 +11,16 @@ const auth = async (req: any, res: Response, next: NextFunction) => {
             req.cookies["accessToken"];
 
         if (!token) {
-            next(CustomErrorHandler.unAuthorized("Unauthorized Access"));
+            return res
+                .status(401)
+                .send(ResponseHandler(401, "Unauthorized Access"));
         }
 
         const user = jwt.verify(token!, config.ACCESS_SECRET);
         if (!user) {
-            next(CustomErrorHandler.unAuthorized("Unauthorized Access"));
+            return res
+                .status(401)
+                .send(ResponseHandler(401, "Unauthorized Access"));
         }
 
         req.user = user;

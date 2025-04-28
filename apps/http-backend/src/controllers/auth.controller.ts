@@ -119,7 +119,7 @@ const authControllers = {
                     httpOnly: true,
                     secure: true,
                     sameSite: "strict",
-                    maxAge: 10 * 1000,
+                    maxAge: 15 * 60 * 1000,
                 })
                 .cookie("refreshToken", refreshToken, {
                     httpOnly: true,

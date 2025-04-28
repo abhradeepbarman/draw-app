@@ -1,5 +1,6 @@
 "use client";
 import axiosInstance from "@/lib/axios";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 
@@ -17,11 +18,12 @@ const page = () => {
             confirm_password: "",
         },
     });
+    const router = useRouter();
 
     const onSubmit = async (data: any) => {
         try {
-            const response = await axiosInstance.post("/auth/register", data);
-            console.log("response", response);
+            await axiosInstance.post("/auth/register", data);
+            router.push("/dashboard")
         } catch (error) {
             console.log(error);
         }

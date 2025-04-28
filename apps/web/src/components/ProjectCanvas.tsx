@@ -1,58 +1,101 @@
 "use client";
-import { Shape } from "@/@types/shape.types";
-import SideBar from "@/components/Sidebar";
-import initDraw from "@/draw/draw";
-import { useSocket } from "@/hooks/useSocket";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
+
+interface Shape {
+    type: "rect" | "circle" | "line" | "text";
+    startX: number;
+    startY: number;
+    width: number;
+    height: number;
+}
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [selectedShape, setSelectedShape] = useState<Shape["type"]>("rect");
-    const { ws, setWs } = useSocket();
+
+    const existingShapes: Shape[] = [];
 
     useEffect(() => {
-        if (!ws) {
-            return;
-        }
-
         const canvas = canvasRef.current;
         if (!canvas) return;
-
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        ws.send("Hello")
+        ctx.strokeStyle = "white";
 
-        // join room
-        const data = JSON.stringify({
-            type: "join_room",
-            roomId: projectId,
-        });
-        ws.send(data);
+        let startX = 0;
+        let startY = 0;
+        let clicked = false;
 
-        let cleanup: () => void = () => {};
-        initDraw(canvas, ctx, selectedShape, projectId, ws).then((fn) => {
-            cleanup = fn!;
-        });
+        const mouseDownHandler = (e: MouseEvent) => {
+            clicked = true;
+            var rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        };
 
-        return () => {
-            if (cleanup) {
-                cleanup();
+        const mouseMoveHandler = (e: MouseEvent) => {
+            if (clicked) {
+                var rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+
+                const width = endX - startX;
+                const height = endY - startY;
+
+                clearCanvas(canvas, ctx);
+                ctx.beginPath();
+                ctx.rect(startX, startY, width, height);
+                ctx.stroke();
             }
         };
-    }, [selectedShape, setWs]);
 
-    return (
-        <div className="relative flex justify-center">
-            <canvas width={2000} height={1000} ref={canvasRef}></canvas>
-            <div className="fixed bottom-5">
-                <SideBar
-                    selectedShape={selectedShape}
-                    setSelectedShape={setSelectedShape}
-                />
-            </div>
-        </div>
-    );
+        const mouseUpHandler = (e: MouseEvent) => {
+            clicked = false;
+
+            var rect = canvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+
+            const width = endX - startX;
+            const height = endY - startY;
+
+            existingShapes.push({
+                type: "rect",
+                startX,
+                startY,
+                width,
+                height,
+            });
+            clearCanvas(canvas, ctx);
+        };
+
+        canvas.addEventListener("mousedown", mouseDownHandler);
+        canvas.addEventListener("mousemove", mouseMoveHandler);
+        canvas.addEventListener("mouseup", mouseUpHandler);
+
+        return () => {
+            canvas.removeEventListener("mousedown", mouseDownHandler);
+            canvas.removeEventListener("mousemove", mouseMoveHandler);
+            canvas.removeEventListener("mouseup", mouseUpHandler);
+        };
+    }, []);
+
+    function clearCanvas(
+        canvas: HTMLCanvasElement,
+        ctx: CanvasRenderingContext2D
+    ) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        existingShapes.forEach((shape) => {
+            if (shape.type === "rect") {
+                ctx.beginPath();
+                ctx.rect(shape.startX, shape.startY, shape.width, shape.height);
+                ctx.stroke();
+            }
+        });
+    }
+
+    return <canvas width={2000} height={1000} ref={canvasRef}></canvas>;
 };
 
 export default ProjectCanvas;

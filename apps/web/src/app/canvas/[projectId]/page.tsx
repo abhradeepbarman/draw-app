@@ -9,11 +9,7 @@ const Page = async ({
 }) => {
     const { projectId } = await params;
 
-    return (
-        <div>
-            <ProjectCanvas projectId={projectId} />
-        </div>
-    );
+    return <ProjectCanvas projectId={projectId} />;
 };
 
 export default Page;

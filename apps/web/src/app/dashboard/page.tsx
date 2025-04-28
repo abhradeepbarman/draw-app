@@ -9,7 +9,6 @@ const page = () => {
     async function createCanvas() {
         try {
             const { data: response } = await axiosInstance.post("/project");
-            console.log("response", response);
             router.push(`canvas/${response.data.id}`);
         } catch (error) {
             console.log(error);

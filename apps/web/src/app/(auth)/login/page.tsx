@@ -1,9 +1,11 @@
 "use client";
 import axiosInstance from "@/lib/axios";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 
 const page = () => {
+    const router = useRouter();
     const {
         register,
         handleSubmit,
@@ -18,8 +20,8 @@ const page = () => {
 
     const onSubmit = async (data: any) => {
         try {
-            const response = await axiosInstance.post("/auth/login", data);
-            console.log("response", response);
+            await axiosInstance.post("/auth/login", data);
+            router.push("/dashboard");
         } catch (error) {
             console.log(error);
         }
