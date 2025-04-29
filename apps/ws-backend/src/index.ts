@@ -41,8 +41,6 @@ wss.on("connection", function connection(ws, request) {
     const cookies = parse(request.headers.cookie || "");
     const token = cookies.accessToken;
 
-    console.log("access token", token);
-
     if (!token) {
         ws.close();
         return;
@@ -59,8 +57,6 @@ wss.on("connection", function connection(ws, request) {
         rooms: [],
         ws,
     });
-
-    console.log("users", users);
 
     ws.on("message", async function message(data) {
         const jsonString = typeof data === "string" ? data : data.toString();

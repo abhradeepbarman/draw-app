@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
 
 export interface Shape {
-    type: "rect" | "circle" | "line";
+    type: "rect" | "circle" | "line" | "text";
     startX: number;
     startY: number;
     endX?: number;
@@ -39,7 +39,6 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         if (!socket) return;
 
         getPreviousChats().then((res) => {
-            console.log("res", res);
             res.length > 0 &&
                 res.map((item: any) => {
                     existingShapes.push(JSON.parse(item?.message));
@@ -73,10 +72,12 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         };
 
         ctx.strokeStyle = "white";
+        ctx.fillStyle = "white";
 
         let startX = 0;
         let startY = 0;
         let clicked = false;
+        let typedText = ""
 
         const mouseDownHandler = (e: MouseEvent) => {
             clicked = true;
@@ -212,6 +213,15 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         };
     }, [socket, selectedTool]);
 
+    useEffect(() => {
+        if(selectedTool === "text") {
+            document.body.style.cursor = "text";
+        }
+        else {
+            document.body.style.cursor = "default";
+        }
+    }, [selectedTool])
+
     function clearCanvas(
         canvas: HTMLCanvasElement,
         ctx: CanvasRenderingContext2D
@@ -250,7 +260,6 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     async function getPreviousChats() {
         try {
             const { data } = await axiosInstance.get(`/chat/all/${projectId}`);
-            console.log("extracted data", data);
             return data?.data;
         } catch (error) {
             console.log(error);

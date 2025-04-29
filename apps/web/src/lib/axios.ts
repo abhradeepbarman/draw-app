@@ -20,7 +20,7 @@ const refreshAccessToken = async () => {
 
         return true;
     } catch (error) {
-        // window.location.href = "/login";
+        window.location.href = "/login";
         return null;
     }
 };

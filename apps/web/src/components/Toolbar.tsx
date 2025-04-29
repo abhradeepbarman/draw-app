@@ -1,4 +1,4 @@
-import { Circle, Minus, Square } from "lucide-react";
+import { Circle, Italic, Minus, Square } from "lucide-react";
 import React from "react";
 import { Shape } from "./ProjectCanvas";
 
@@ -28,6 +28,12 @@ const Toolbar = ({
                 onClick={() => setSelectedTool("line")}
             >
                 <Minus />
+            </div>
+            <div
+                className="cursor-pointer"
+                onClick={() => setSelectedTool("text")}
+            >
+                <Italic />
             </div>
         </div>
     );
