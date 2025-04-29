@@ -1,19 +1,31 @@
 "use client";
 import { useSocket } from "@/hooks/useSocket";
 import axiosInstance from "@/lib/axios";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Toolbar from "./Toolbar";
 
-interface Shape {
-    type: "rect" | "circle" | "line" | "text";
+export interface Shape {
+    type: "rect" | "circle" | "line";
     startX: number;
     startY: number;
-    width: number;
-    height: number;
+    endX?: number;
+    endY?: number;
+    width?: number;
+    height?: number;
+    radius?: number;
+}
+
+interface Stroke {
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
 }
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { socket } = useSocket();
+    const [selectedTool, setSelectedTool] = useState<Shape["type"]>("rect");
 
     let existingShapes: Shape[] = [];
 
@@ -27,6 +39,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         if (!socket) return;
 
         getPreviousChats().then((res) => {
+            console.log("res", res);
             res.length > 0 &&
                 res.map((item: any) => {
                     existingShapes.push(JSON.parse(item?.message));
@@ -78,13 +91,30 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 const endX = e.clientX - rect.left;
                 const endY = e.clientY - rect.top;
 
-                const width = endX - startX;
-                const height = endY - startY;
+                if (selectedTool === "rect") {
+                    const width = endX - startX;
+                    const height = endY - startY;
 
-                clearCanvas(canvas, ctx);
-                ctx.beginPath();
-                ctx.rect(startX, startY, width, height);
-                ctx.stroke();
+                    clearCanvas(canvas, ctx);
+                    ctx.beginPath();
+                    ctx.rect(startX, startY, width, height);
+                    ctx.stroke();
+                } else if (selectedTool === "circle") {
+                    const radius = Math.sqrt(
+                        Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
+                    );
+
+                    clearCanvas(canvas, ctx);
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                } else if (selectedTool === "line") {
+                    clearCanvas(canvas, ctx);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                }
             }
         };
 
@@ -95,30 +125,80 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
 
-            const width = endX - startX;
-            const height = endY - startY;
+            if (selectedTool === "rect") {
+                const width = endX - startX;
+                const height = endY - startY;
 
-            const message: Shape = {
-                type: "rect",
-                startX,
-                startY,
-                width,
-                height,
-            };
-            existingShapes.push(message);
-            const messageString = JSON.stringify(message);
-            sendShape(messageString).then(() => {
-                console.log("shape sent");
-            });
-            clearCanvas(canvas, ctx);
+                const message: Shape = {
+                    type: "rect",
+                    startX,
+                    startY,
+                    width,
+                    height,
+                };
 
-            socket.send(
-                JSON.stringify({
-                    type: "chat",
-                    roomId: projectId,
-                    message,
-                })
-            );
+                existingShapes.push(message);
+                clearCanvas(canvas, ctx);
+                const messageString = JSON.stringify(message);
+                sendShape(messageString).then(() => {
+                    console.log("shape sent");
+                });
+
+                socket.send(
+                    JSON.stringify({
+                        type: "chat",
+                        roomId: projectId,
+                        message,
+                    })
+                );
+            } else if (selectedTool === "circle") {
+                const radius = Math.sqrt(
+                    Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
+                );
+
+                const message: Shape = {
+                    type: "circle",
+                    startX,
+                    startY,
+                    radius,
+                };
+                existingShapes.push(message);
+                clearCanvas(canvas, ctx);
+                const messageString = JSON.stringify(message);
+                sendShape(messageString).then(() => {
+                    console.log("shape sent");
+                });
+
+                socket.send(
+                    JSON.stringify({
+                        type: "chat",
+                        roomId: projectId,
+                        message,
+                    })
+                );
+            } else if (selectedTool === "line") {
+                const message: Shape = {
+                    type: "line",
+                    startX,
+                    startY,
+                    endX,
+                    endY,
+                };
+                existingShapes.push(message);
+                clearCanvas(canvas, ctx);
+                const messageString = JSON.stringify(message);
+                sendShape(messageString).then(() => {
+                    console.log("shape sent");
+                });
+
+                socket.send(
+                    JSON.stringify({
+                        type: "chat",
+                        roomId: projectId,
+                        message,
+                    })
+                );
+            }
         };
 
         canvas.addEventListener("mousedown", mouseDownHandler);
@@ -130,7 +210,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             canvas.removeEventListener("mousemove", mouseMoveHandler);
             canvas.removeEventListener("mouseup", mouseUpHandler);
         };
-    }, [socket]);
+    }, [socket, selectedTool]);
 
     function clearCanvas(
         canvas: HTMLCanvasElement,
@@ -141,7 +221,27 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         existingShapes.forEach((shape) => {
             if (shape.type === "rect") {
                 ctx.beginPath();
-                ctx.rect(shape.startX, shape.startY, shape.width, shape.height);
+                ctx.rect(
+                    shape.startX,
+                    shape.startY,
+                    shape?.width!,
+                    shape?.height!
+                );
+                ctx.stroke();
+            } else if (shape.type === "circle") {
+                ctx.beginPath();
+                ctx.arc(
+                    shape.startX,
+                    shape.startY,
+                    shape?.radius!,
+                    0,
+                    2 * Math.PI
+                );
+                ctx.stroke();
+            } else if (shape.type === "line") {
+                ctx.beginPath();
+                ctx.moveTo(shape.startX, shape.startY);
+                ctx.lineTo(shape.endX!, shape.endY!);
                 ctx.stroke();
             }
         });
@@ -168,7 +268,17 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         }
     }
 
-    return <canvas width={2000} height={1000} ref={canvasRef}></canvas>;
+    return (
+        <div className="relative">
+            <canvas width={2000} height={1000} ref={canvasRef}></canvas>
+            <div className="fixed bottom-5 w-full flex justify-center">
+                <Toolbar
+                    selectedTool={selectedTool}
+                    setSelectedTool={setSelectedTool}
+                />
+            </div>
+        </div>
+    );
 };
 
 export default ProjectCanvas;
