@@ -3,29 +3,14 @@ import { useSocket } from "@/hooks/useSocket";
 import axiosInstance from "@/lib/axios";
 import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
-
-export interface Shape {
-    type: "rect" | "circle" | "line" | "text";
-    startX: number;
-    startY: number;
-    endX?: number;
-    endY?: number;
-    width?: number;
-    height?: number;
-    radius?: number;
-}
-
-interface Stroke {
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-}
+import useDeviceSize from "@/hooks/useDeviceSize";
+import { Shape } from "@/@types/shape.types";
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { socket } = useSocket();
     const [selectedTool, setSelectedTool] = useState<Shape["type"]>("rect");
+    const [width, height] = useDeviceSize();
 
     let existingShapes: Shape[] = [];
 
@@ -77,7 +62,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         let startX = 0;
         let startY = 0;
         let clicked = false;
-        let typedText = ""
+        let typedText = "";
 
         const mouseDownHandler = (e: MouseEvent) => {
             clicked = true;
@@ -125,6 +110,10 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             var rect = canvas.getBoundingClientRect();
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
+
+            if (startX === endX && startY === endY) {
+                return;
+            }
 
             if (selectedTool === "rect") {
                 const width = endX - startX;
@@ -213,15 +202,6 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         };
     }, [socket, selectedTool]);
 
-    useEffect(() => {
-        if(selectedTool === "text") {
-            document.body.style.cursor = "text";
-        }
-        else {
-            document.body.style.cursor = "default";
-        }
-    }, [selectedTool])
-
     function clearCanvas(
         canvas: HTMLCanvasElement,
         ctx: CanvasRenderingContext2D
@@ -279,7 +259,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
     return (
         <div className="relative">
-            <canvas width={2000} height={1000} ref={canvasRef}></canvas>
+            <canvas width={width} height={height} ref={canvasRef}></canvas>
             <div className="fixed bottom-5 w-full flex justify-center">
                 <Toolbar
                     selectedTool={selectedTool}
