@@ -1,13 +1,12 @@
-import { Shape } from "@/@types/shape.types";
-import { Circle, Italic, Minus, Square } from "lucide-react";
+import { Circle, Eraser, Minus, Pen, Square } from "lucide-react";
 import React from "react";
 
 const Toolbar = ({
     selectedTool,
     setSelectedTool,
 }: {
-    selectedTool: Shape["type"];
-    setSelectedTool: React.Dispatch<React.SetStateAction<Shape["type"]>>;
+    selectedTool: string;
+    setSelectedTool: React.Dispatch<React.SetStateAction<string>>;
 }) => {
     return (
         <div className="flex gap-4">
@@ -28,6 +27,18 @@ const Toolbar = ({
                 onClick={() => setSelectedTool("line")}
             >
                 <Minus />
+            </div>
+            <div
+                className="cursor-pointer"
+                onClick={() => setSelectedTool("pencil")}
+            >
+                <Pen />
+            </div>
+            <div
+                className="cursor-pointer"
+                onClick={() => setSelectedTool("eraser")}
+            >
+                <Eraser />
             </div>
         </div>
     );

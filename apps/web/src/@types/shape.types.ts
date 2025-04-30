@@ -21,4 +21,17 @@ export interface Line {
     endY: number;
 }
 
-export type Shape = Rect | Circle | Line;
+export interface PencilStrokes {
+    type: "pencilStrokes";
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+}
+
+export interface Pencil {
+    type: "pencil";
+    strokes: PencilStrokes[];
+}
+
+export type Shape = Rect | Circle | Line | Pencil;

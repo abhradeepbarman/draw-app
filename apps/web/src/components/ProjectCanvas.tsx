@@ -4,15 +4,23 @@ import axiosInstance from "@/lib/axios";
 import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
 import useDeviceSize from "@/hooks/useDeviceSize";
-import { Shape } from "@/@types/shape.types";
+import { Shape, PencilStrokes } from "@/@types/shape.types";
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { socket } = useSocket();
-    const [selectedTool, setSelectedTool] = useState<Shape["type"]>("rect");
+    const [selectedTool, setSelectedTool] = useState<string>("rect");
     const [width, height] = useDeviceSize();
 
     let existingShapes: Shape[] = [];
+
+    useEffect(() => {
+        if (selectedTool === "eraser") {
+            document.body.style.cursor = "crosshair";
+        } else {
+            document.body.style.cursor = "default";
+        }
+    }, [selectedTool]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -62,13 +70,18 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         let startX = 0;
         let startY = 0;
         let clicked = false;
-        let typedText = "";
+        let lastX = 0;
+        let lastY = 0;
+        let pencilStrokes: PencilStrokes[] = [];
 
         const mouseDownHandler = (e: MouseEvent) => {
             clicked = true;
             var rect = canvas.getBoundingClientRect();
             startX = e.clientX - rect.left;
             startY = e.clientY - rect.top;
+            lastX = startX;
+            lastY = startY;
+            pencilStrokes = [];
         };
 
         const mouseMoveHandler = (e: MouseEvent) => {
@@ -100,6 +113,46 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
+                } else if (selectedTool === "pencil") {
+                    pencilStrokes.push({
+                        type: "pencilStrokes",
+                        startX: lastX,
+                        startY: lastY,
+                        endX,
+                        endY,
+                    });
+
+                    lastX = endX;
+                    lastY = endY;
+                    clearCanvas(canvas, ctx);
+                    pencilStrokes.map((stroke) => {
+                        ctx.beginPath();
+                        ctx.moveTo(stroke.startX, stroke.startY);
+                        ctx.lineTo(stroke.endX, stroke.endY);
+                        ctx.stroke();
+                    });
+                } else if (selectedTool === "eraser") {
+                    // TODO - isPointInStroke()
+
+                    existingShapes.map((shape) => {
+                        if (shape.type === "rect") {
+                            const myRectPath = new Path2D();
+                            myRectPath.rect(
+                                shape.startX,
+                                shape.startY,
+                                shape.width,
+                                shape.height
+                            );
+
+                            if(
+                                ctx.isPointInStroke(myRectPath, endX, endY)
+                            ){
+                                console.log("erased");
+                                existingShapes = existingShapes.filter((s) => s != shape)
+                                clearCanvas(canvas, ctx);
+                            }
+                        }
+                    });
                 }
             }
         };
@@ -188,6 +241,26 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                         message,
                     })
                 );
+            } else if (selectedTool === "pencil") {
+                const message: Shape = {
+                    type: "pencil",
+                    strokes: pencilStrokes,
+                };
+                existingShapes.push(message);
+                clearCanvas(canvas, ctx);
+
+                const messageString = JSON.stringify(message);
+                sendShape(messageString).then(() => {
+                    console.log("shape sent");
+                });
+
+                socket.send(
+                    JSON.stringify({
+                        type: "chat",
+                        roomId: projectId,
+                        message,
+                    })
+                );
             }
         };
 
@@ -233,6 +306,13 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 ctx.moveTo(shape.startX, shape.startY);
                 ctx.lineTo(shape.endX!, shape.endY!);
                 ctx.stroke();
+            } else if (shape.type === "pencil") {
+                shape.strokes.map((stroke) => {
+                    ctx.beginPath();
+                    ctx.moveTo(stroke.startX, stroke.startY);
+                    ctx.lineTo(stroke.endX, stroke.endY);
+                    ctx.stroke();
+                });
             }
         });
     }
