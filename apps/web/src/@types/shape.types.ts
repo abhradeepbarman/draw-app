@@ -1,4 +1,5 @@
 export interface Rect {
+    id?: string;
     type: "rect";
     startX: number;
     startY: number;
@@ -7,6 +8,7 @@ export interface Rect {
 }
 
 export interface Circle {
+    id?: string;
     type: "circle";
     startX: number;
     startY: number;
@@ -14,6 +16,7 @@ export interface Circle {
 }
 
 export interface Line {
+    id?: string;
     type: "line";
     startX: number;
     startY: number;
@@ -30,6 +33,7 @@ export interface PencilStrokes {
 }
 
 export interface Pencil {
+    id?: string;
     type: "pencil";
     strokes: PencilStrokes[];
 }

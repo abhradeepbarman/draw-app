@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
 import useDeviceSize from "@/hooks/useDeviceSize";
 import { Shape, PencilStrokes } from "@/@types/shape.types";
+import { deleteShapes, getPreviousChats, sendShape } from "@/api";
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,14 +32,19 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
         if (!socket) return;
 
-        getPreviousChats().then((res) => {
-            res.length > 0 &&
-                res.map((item: any) => {
-                    existingShapes.push(JSON.parse(item?.message));
-                });
+        getPreviousChats(projectId)
+            .then()
+            .then((res) => {
+                res.length > 0 &&
+                    res.map((item: any) => {
+                        existingShapes.push({
+                            id: item.id,
+                            ...JSON.parse(item?.message),
+                        });
+                    });
 
-            clearCanvas(canvas, ctx);
-        });
+                clearCanvas(canvas, ctx);
+            });
 
         const sendJoinRoom = () => {
             socket.send(
@@ -57,9 +63,16 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
         socket.onmessage = (e) => {
             const incomingMessage = JSON.parse(e.data);
-
             if (incomingMessage.type === "chat") {
                 existingShapes.push(incomingMessage.message);
+                clearCanvas(canvas, ctx);
+            } else if (incomingMessage.type === "delete_chat") {
+                existingShapes = existingShapes.filter((shape) => {
+                    const { id: idOne, ...restShapeOne } = shape;
+                    const { id: idTwo, ...restShapeTwo } =
+                        incomingMessage.message;
+                    return !isMatchingShape(restShapeOne, restShapeTwo);
+                });
                 clearCanvas(canvas, ctx);
             }
         };
@@ -73,6 +86,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         let lastX = 0;
         let lastY = 0;
         let pencilStrokes: PencilStrokes[] = [];
+        let deletedShapes: Shape[] = [];
 
         const mouseDownHandler = (e: MouseEvent) => {
             clicked = true;
@@ -82,6 +96,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
             lastX = startX;
             lastY = startY;
             pencilStrokes = [];
+            deletedShapes = [];
         };
 
         const mouseMoveHandler = (e: MouseEvent) => {
@@ -132,25 +147,72 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                         ctx.stroke();
                     });
                 } else if (selectedTool === "eraser") {
-                    // TODO - isPointInStroke()
+                    existingShapes.forEach((shape) => {
+                        let shouldDelete = false;
 
-                    existingShapes.map((shape) => {
                         if (shape.type === "rect") {
-                            const myRectPath = new Path2D();
-                            myRectPath.rect(
+                            const path = new Path2D();
+                            path.rect(
                                 shape.startX,
                                 shape.startY,
                                 shape.width,
                                 shape.height
                             );
+                            shouldDelete = ctx.isPointInPath(path, endX, endY);
+                        }
 
-                            if(
-                                ctx.isPointInStroke(myRectPath, endX, endY)
-                            ){
-                                console.log("erased");
-                                existingShapes = existingShapes.filter((s) => s != shape)
-                                clearCanvas(canvas, ctx);
+                        if (shape.type === "circle") {
+                            const path = new Path2D();
+                            path.arc(
+                                shape.startX,
+                                shape.startY,
+                                shape.radius,
+                                0,
+                                2 * Math.PI
+                            );
+                            shouldDelete = ctx.isPointInPath(path, endX, endY);
+                        }
+
+                        if (shape.type === "line") {
+                            const path = new Path2D();
+                            path.moveTo(shape.startX, shape.startY);
+                            path.lineTo(shape.endX, shape.endY);
+                            shouldDelete = ctx.isPointInStroke(
+                                path,
+                                endX,
+                                endY
+                            );
+                        }
+
+                        if (shape.type === "pencil") {
+                            for (let i = 0; i < shape.strokes.length - 1; i++) {
+                                const p1 = shape.strokes[i];
+                                const p2 = shape.strokes[i + 1];
+                                const path = new Path2D();
+                                path.moveTo(p1.startX, p1.startY);
+                                path.lineTo(p2.startX, p2.startY);
+
+                                if (ctx.isPointInStroke(path, endX, endY)) {
+                                    shouldDelete = true;
+                                    break;
+                                }
                             }
+                        }
+
+                        if (shouldDelete) {
+                            deletedShapes.push(shape);
+                            existingShapes = existingShapes.filter(
+                                (s) => s !== shape
+                            );
+                            clearCanvas(canvas, ctx);
+
+                            socket.send(
+                                JSON.stringify({
+                                    type: "delete_chat",
+                                    roomId: projectId,
+                                    message: shape,
+                                })
+                            );
                         }
                     });
                 }
@@ -183,7 +245,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 existingShapes.push(message);
                 clearCanvas(canvas, ctx);
                 const messageString = JSON.stringify(message);
-                sendShape(messageString).then(() => {
+                sendShape(projectId, messageString).then(() => {
                     console.log("shape sent");
                 });
 
@@ -208,7 +270,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 existingShapes.push(message);
                 clearCanvas(canvas, ctx);
                 const messageString = JSON.stringify(message);
-                sendShape(messageString).then(() => {
+                sendShape(projectId, messageString).then(() => {
                     console.log("shape sent");
                 });
 
@@ -230,7 +292,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 existingShapes.push(message);
                 clearCanvas(canvas, ctx);
                 const messageString = JSON.stringify(message);
-                sendShape(messageString).then(() => {
+                sendShape(projectId, messageString).then(() => {
                     console.log("shape sent");
                 });
 
@@ -250,7 +312,7 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                 clearCanvas(canvas, ctx);
 
                 const messageString = JSON.stringify(message);
-                sendShape(messageString).then(() => {
+                sendShape(projectId, messageString).then(() => {
                     console.log("shape sent");
                 });
 
@@ -261,6 +323,19 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
                         message,
                     })
                 );
+            } else if (selectedTool === "eraser") {
+                clearCanvas(canvas, ctx);
+                const deletedChats: string[] = [];
+                deletedShapes.map((shape: Shape) => {
+                    if (shape?.id) {
+                        deletedChats.push(shape.id);
+                    }
+                });
+                if (deletedChats.length > 0) {
+                    deleteShapes(projectId, deletedChats).then(() => {
+                        console.log("Shapes deleted");
+                    });
+                }
             }
         };
 
@@ -317,24 +392,8 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
         });
     }
 
-    async function getPreviousChats() {
-        try {
-            const { data } = await axiosInstance.get(`/chat/all/${projectId}`);
-            return data?.data;
-        } catch (error) {
-            console.log(error);
-        }
-    }
-
-    async function sendShape(message: string) {
-        try {
-            await axiosInstance.post(`/chat/${projectId}`, {
-                message,
-            });
-            return true;
-        } catch (error) {
-            console.log(error);
-        }
+    function isMatchingShape(shape: any, target: any) {
+        return JSON.stringify(shape) === JSON.stringify(target);
     }
 
     return (

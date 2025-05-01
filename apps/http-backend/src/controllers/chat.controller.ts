@@ -1,6 +1,6 @@
 import { db } from "@repo/db";
 import { chats, projects } from "@repo/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { NextFunction, Response } from "express";
 import ResponseHandler from "../utils/responseHandler";
 
@@ -67,6 +67,48 @@ const chatController = {
             return res
                 .status(201)
                 .send(ResponseHandler(201, "Chat sent successfully", newChat));
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    async deleteChats(
+        req: any,
+        res: Response,
+        next: NextFunction
+    ): Promise<any> {
+        try {
+            const body = req.body;
+            const { projectId } = req.params;
+            const { id } = req.user;
+
+            const room = await db.query.projects.findFirst({
+                where: eq(projects.id, projectId!),
+            });
+
+            if (!room) {
+                return res
+                    .status(404)
+                    .send(ResponseHandler(404, "Room not found"));
+            }
+
+            if (room.adminId !== id) {
+                return res
+                    .status(403)
+                    .send(ResponseHandler(403, "You are not authorized"));
+            }
+
+            const jsonChats = JSON.parse(body.chats);
+
+            /**
+             * [chatID 1, chatID 2, chatID 3]
+             */
+
+            await db.delete(chats).where(inArray(chats.id, jsonChats));
+
+            return res
+                .status(200)
+                .send(ResponseHandler(200, "Chats deleted successfully"));
         } catch (error) {
             return next(error);
         }
