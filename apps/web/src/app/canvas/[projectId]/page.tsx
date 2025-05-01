@@ -1,7 +1,7 @@
 import ProjectCanvas from "@/components/ProjectCanvas";
 
-const Page = ({ params }: { params: { projectId: string } }) => {
-    const { projectId } = params;
+const Page = async ({ params }: { params: { projectId: string } }) => {
+    const { projectId } = await params;
 
     return <ProjectCanvas projectId={projectId} />;
 };

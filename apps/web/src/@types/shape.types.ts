@@ -38,4 +38,9 @@ export interface Pencil {
     strokes: PencilStrokes[];
 }
 
-export type Shape = Rect | Circle | Line | Pencil;
+export interface Eraser {
+    id?: string;
+    type: "eraser";
+}
+
+export type Shape = Rect | Circle | Line | Pencil | Eraser;
