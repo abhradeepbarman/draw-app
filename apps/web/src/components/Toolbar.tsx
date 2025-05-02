@@ -1,5 +1,5 @@
 import { Shape } from "@/@types/shape.types";
-import { Circle, Eraser, Minus, Pen, Square } from "lucide-react";
+import { Circle, Eraser, Hand, Minus, Pen, Square } from "lucide-react";
 import React from "react";
 
 const Toolbar = ({
@@ -40,6 +40,12 @@ const Toolbar = ({
                 onClick={() => setSelectedTool("eraser")}
             >
                 <Eraser />
+            </div>
+            <div
+                className="cursor-pointer"
+                onClick={() => setSelectedTool("drag")}
+            >
+                <Hand />
             </div>
         </div>
     );

@@ -43,4 +43,9 @@ export interface Eraser {
     type: "eraser";
 }
 
-export type Shape = Rect | Circle | Line | Pencil | Eraser;
+export interface Drag {
+    id?: string;
+    type: "drag";
+}
+
+export type Shape = Rect | Circle | Line | Pencil | Eraser | Drag;

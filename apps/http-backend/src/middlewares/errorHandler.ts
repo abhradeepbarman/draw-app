@@ -22,7 +22,7 @@ const errorHandler = (
     }
 
     if (err instanceof JsonWebTokenError) {
-        statusCode = 401;
+        statusCode = 403;
         message = "Unauthorized";
     }
 

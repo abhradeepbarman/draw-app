@@ -1,11 +1,10 @@
 "use client";
-import { PencilStrokes, Shape } from "@/@types/shape.types";
-import { deleteShapes, getPreviousChats, sendShape } from "@/api";
+import { Shape } from "@/@types/shape.types";
+import { Draw } from "@/draw/Draw";
 import useDeviceSize from "@/hooks/useDeviceSize";
 import { useSocket } from "@/hooks/useSocket";
 import { useEffect, useRef, useState } from "react";
 import Toolbar from "./Toolbar";
-import { Draw } from "@/draw";
 
 const ProjectCanvas = ({ projectId }: { projectId: string }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);

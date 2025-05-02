@@ -26,6 +26,7 @@ const auth = async (req: any, res: Response, next: NextFunction) => {
         req.user = user;
         next();
     } catch (error) {
+        console.log("Error", error);
         next(error);
     }
 };

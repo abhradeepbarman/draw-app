@@ -98,13 +98,14 @@ export class Draw {
 
     mouseDownHandler = (e: MouseEvent) => {
         this.clicked = true;
+
         var rect = this.canvas.getBoundingClientRect();
         this.startX = e.clientX - rect.left;
         this.startY = e.clientY - rect.top;
-        console.log(this.startX, this.startY);
+        
         this.lastX = this.startX;
         this.lastY = this.startY;
-        console.log(this.startX, this.startY);
+
         this.pencilStrokes = [];
         this.deletedShapes = [];
     };
