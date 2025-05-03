@@ -179,7 +179,6 @@ wss.on("connection", function connection(ws, request) {
                     return;
                 }
 
-
                 users.forEach((user) => {
                     if (user.rooms.includes(roomId) && user.ws !== ws) {
                         user.ws.send(
@@ -194,6 +193,22 @@ wss.on("connection", function connection(ws, request) {
             } catch (error) {
                 console.log(error);
             }
+        }
+
+        if (parsedData.type === "drag") {
+            users.forEach((user) => {
+                if (user.rooms.includes(parsedData.roomId) && user.ws !== ws) {
+                    user.ws.send(JSON.stringify({
+                        type: "drag",
+                        roomId: parsedData.roomId!,
+                        viewportTransform: {
+                            x: parsedData.viewportTransform.x,
+                            y: parsedData.viewportTransform.y,
+                            scale: parsedData.viewportTransform.scale,
+                        },
+                    }));
+                }
+            });
         }
     });
 

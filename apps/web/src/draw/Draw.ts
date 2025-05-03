@@ -15,6 +15,13 @@ export class Draw {
     private pencilStrokes: PencilStrokes[] = [];
     private deletedShapes: Shape[] = [];
     private selectedTool: Shape["type"] = "rect";
+    private previousX: number = 0;
+    private previousY: number = 0;
+    private viewportTransform = {
+        x: 0,
+        y: 0,
+        scale: 1,
+    };
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -35,6 +42,7 @@ export class Draw {
         this.canvas.removeEventListener("mousedown", this.mouseDownHandler);
         this.canvas.removeEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.removeEventListener("mouseup", this.mouseUpHandler);
+        this.canvas.removeEventListener("wheel", this.mouseWheelHandler);
     }
 
     setTool(tool: Shape["type"]) {
@@ -86,6 +94,11 @@ export class Draw {
                     return !this.isMatchingShape(restShapeOne, restShapeTwo);
                 });
                 this.clearCanvas();
+            } else if (incomingMessage.type === "drag") {
+                this.viewportTransform = {
+                    ...incomingMessage.viewportTransform,
+                };
+                this.clearCanvas();
             }
         };
     }
@@ -94,7 +107,51 @@ export class Draw {
         this.canvas.addEventListener("mousedown", this.mouseDownHandler);
         this.canvas.addEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.addEventListener("mouseup", this.mouseUpHandler);
+        this.canvas.addEventListener("wheel", this.mouseWheelHandler);
     }
+
+    updatePanning = (e: MouseEvent) => {
+        const localX = e.clientX;
+        const localY = e.clientY;
+
+        this.viewportTransform.x += localX - this.previousX;
+        this.viewportTransform.y += localY - this.previousY;
+
+        this.previousX = localX;
+        this.previousY = localY;
+    };
+
+    updateZooming = (e: WheelEvent) => {
+        const oldScale = this.viewportTransform.scale;
+        const delta = e.deltaY * -0.01;
+        const newScale = Math.max(0.1, Math.min(oldScale + delta, 10));
+
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const scaleRatio = newScale / oldScale;
+
+        this.viewportTransform.x =
+            mouseX - (mouseX - this.viewportTransform.x) * scaleRatio;
+        this.viewportTransform.y =
+            mouseY - (mouseY - this.viewportTransform.y) * scaleRatio;
+        this.viewportTransform.scale = newScale;
+    };
+
+    mouseWheelHandler = (e: WheelEvent) => {
+        e.preventDefault();
+        this.updateZooming(e);
+
+        this.socket.send(
+            JSON.stringify({
+                type: "drag",
+                roomId: this.projectId,
+                viewportTransform: { ...this.viewportTransform },
+            })
+        );
+        this.clearCanvas();
+    };
 
     mouseDownHandler = (e: MouseEvent) => {
         this.clicked = true;
@@ -102,9 +159,12 @@ export class Draw {
         var rect = this.canvas.getBoundingClientRect();
         this.startX = e.clientX - rect.left;
         this.startY = e.clientY - rect.top;
-        
+
         this.lastX = this.startX;
         this.lastY = this.startY;
+
+        this.previousX = e.clientX;
+        this.previousY = e.clientY;
 
         this.pencilStrokes = [];
         this.deletedShapes = [];
@@ -116,37 +176,49 @@ export class Draw {
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
 
+            const { x, y } = this.toCanvasCoords(this.startX, this.startY);
+            const { x: newEndX, y: newEndY } = this.toCanvasCoords(endX, endY);
+
             if (this.selectedTool === "rect") {
-                const width = endX - this.startX;
-                const height = endY - this.startY;
+                const width = newEndX - x;
+                const height = newEndY - y;
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.rect(this.startX, this.startY, width, height);
+                this.ctx.rect(x, y, width, height);
                 this.ctx.stroke();
             } else if (this.selectedTool === "circle") {
                 const radius = Math.sqrt(
-                    Math.pow(endX - this.startX, 2) +
-                        Math.pow(endY - this.startY, 2)
+                    Math.pow(newEndX - x, 2) + Math.pow(newEndY - y, 2)
                 );
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
+                this.ctx.arc(x, y, radius, 0, 2 * Math.PI);
                 this.ctx.stroke();
             } else if (this.selectedTool === "line") {
+                const { x: newEndX, y: newEndY } = this.toCanvasCoords(
+                    endX,
+                    endY
+                );
+
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.moveTo(this.startX, this.startY);
-                this.ctx.lineTo(endX, endY);
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(newEndX, newEndY);
                 this.ctx.stroke();
             } else if (this.selectedTool === "pencil") {
+                const { x: newLastX, y: newLastY } = this.toCanvasCoords(
+                    this.lastX,
+                    this.lastY
+                );
+
                 this.pencilStrokes.push({
                     type: "pencilStrokes",
-                    startX: this.lastX,
-                    startY: this.lastY,
-                    endX,
-                    endY,
+                    startX: newLastX,
+                    startY: newLastY,
+                    endX: newEndX,
+                    endY: newEndY,
                 });
 
                 this.lastX = endX;
@@ -227,6 +299,17 @@ export class Draw {
                         );
                     }
                 });
+            } else if (this.selectedTool === "drag") {
+                this.updatePanning(e);
+                this.clearCanvas();
+
+                this.socket.send(
+                    JSON.stringify({
+                        type: "drag",
+                        roomId: this.projectId,
+                        viewportTransform: { ...this.viewportTransform },
+                    })
+                );
             }
         }
     };
@@ -238,18 +321,24 @@ export class Draw {
         const endX = e.clientX - rect.left;
         const endY = e.clientY - rect.top;
 
+        const { x: newStartX, y: newStartY } = this.toCanvasCoords(
+            this.startX,
+            this.startY
+        );
+        const { x: newEndX, y: newEndY } = this.toCanvasCoords(endX, endY);
+
         if (this.startX === endX && this.startY === endY) {
             return;
         }
 
         if (this.selectedTool === "rect") {
-            const width = endX - this.startX;
-            const height = endY - this.startY;
+            const width = newEndX - newStartX;
+            const height = newEndY - newStartY;
 
             const message: Shape = {
                 type: "rect",
-                startX: this.startX,
-                startY: this.startY,
+                startX: newStartX,
+                startY: newStartY,
                 width,
                 height,
             };
@@ -268,14 +357,14 @@ export class Draw {
             );
         } else if (this.selectedTool === "circle") {
             const radius = Math.sqrt(
-                Math.pow(endX - this.startX, 2) +
-                    Math.pow(endY - this.startY, 2)
+                Math.pow(newEndX - newStartX, 2) +
+                    Math.pow(newEndY - newStartY, 2)
             );
 
             const message: Shape = {
                 type: "circle",
-                startX: this.startX,
-                startY: this.startY,
+                startX: newStartX,
+                startY: newStartY,
                 radius,
             };
             this.existingShapes.push(message);
@@ -295,10 +384,10 @@ export class Draw {
         } else if (this.selectedTool === "line") {
             const message: Shape = {
                 type: "line",
-                startX: this.startX,
-                startY: this.startY,
-                endX,
-                endY,
+                startX: newStartX,
+                startY: newStartY,
+                endX: newEndX,
+                endY: newEndY,
             };
             this.existingShapes.push(message);
             this.clearCanvas();
@@ -349,7 +438,18 @@ export class Draw {
     }
 
     clearCanvas() {
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.setTransform(
+            this.viewportTransform.scale,
+            0,
+            0,
+            this.viewportTransform.scale,
+            this.viewportTransform.x,
+            this.viewportTransform.y
+        );
+
+        this.ctx.lineWidth = 1 / this.viewportTransform.scale;
 
         this.existingShapes.forEach((shape) => {
             if (shape.type === "rect") {
@@ -385,5 +485,12 @@ export class Draw {
                 });
             }
         });
+    }
+
+    toCanvasCoords(x: number, y: number) {
+        return {
+            x: (x - this.viewportTransform.x) / this.viewportTransform.scale,
+            y: (y - this.viewportTransform.y) / this.viewportTransform.scale,
+        };
     }
 }
