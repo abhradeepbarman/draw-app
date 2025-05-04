@@ -43,6 +43,7 @@ export class Draw {
         this.canvas.removeEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.removeEventListener("mouseup", this.mouseUpHandler);
         this.canvas.removeEventListener("wheel", this.mouseWheelHandler);
+        window.removeEventListener("keypress", this.keyPressHandler);
     }
 
     setTool(tool: Shape["type"]) {
@@ -52,6 +53,7 @@ export class Draw {
     async init() {
         this.ctx.strokeStyle = "white";
         this.ctx.fillStyle = "white";
+        this.ctx.font = "30px arial";
 
         const res = await getPreviousChats(this.projectId);
         if (res.length > 0) {
@@ -108,6 +110,7 @@ export class Draw {
         this.canvas.addEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.addEventListener("mouseup", this.mouseUpHandler);
         this.canvas.addEventListener("wheel", this.mouseWheelHandler);
+        window.addEventListener("keypress", this.keyPressHandler);
     }
 
     updatePanning = (e: MouseEvent) => {
@@ -176,35 +179,34 @@ export class Draw {
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
 
-            const { x, y } = this.toCanvasCoords(this.startX, this.startY);
+            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
+                this.startX,
+                this.startY
+            );
             const { x: newEndX, y: newEndY } = this.toCanvasCoords(endX, endY);
 
             if (this.selectedTool === "rect") {
-                const width = newEndX - x;
-                const height = newEndY - y;
+                const width = newEndX - newStartX;
+                const height = newEndY - newStartY;
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.rect(x, y, width, height);
+                this.ctx.rect(newStartX, newStartY, width, height);
                 this.ctx.stroke();
             } else if (this.selectedTool === "circle") {
                 const radius = Math.sqrt(
-                    Math.pow(newEndX - x, 2) + Math.pow(newEndY - y, 2)
+                    Math.pow(newEndX - newStartX, 2) +
+                        Math.pow(newEndY - newStartY, 2)
                 );
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                this.ctx.arc(newStartX, newStartY, radius, 0, 2 * Math.PI);
                 this.ctx.stroke();
             } else if (this.selectedTool === "line") {
-                const { x: newEndX, y: newEndY } = this.toCanvasCoords(
-                    endX,
-                    endY
-                );
-
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
+                this.ctx.moveTo(newStartX, newStartY);
                 this.ctx.lineTo(newEndX, newEndY);
                 this.ctx.stroke();
             } else if (this.selectedTool === "pencil") {
@@ -431,6 +433,22 @@ export class Draw {
                 await deleteShapes(this.projectId, deletedChats);
             }
         }
+    };
+
+    keyPressHandler = (e: KeyboardEvent) => {
+        // if (this.isTyping) {
+        //     this.typeShape.text += e.key;
+
+        //     const { x, y } = this.toCanvasCoords(
+        //         this.typeShape.startX,
+        //         this.typeShape.startY
+        //     );
+
+        //     this.ctx.beginPath();
+        //     this.ctx.fillText(this.typeShape.text, x, y);
+        //     this.ctx.strokeText(this.typeShape.text, x, y);
+        //     this.clearCanvas();
+        // }
     };
 
     isMatchingShape(shape: any, target: any) {

@@ -38,6 +38,14 @@ export interface Pencil {
     strokes: PencilStrokes[];
 }
 
+export interface Text {
+    id?: string;
+    type: "text";
+    text: string;
+    startX: number;
+    startY: number;
+}
+
 export interface Eraser {
     id?: string;
     type: "eraser";
@@ -48,4 +56,4 @@ export interface Drag {
     type: "drag";
 }
 
-export type Shape = Rect | Circle | Line | Pencil | Eraser | Drag;
+export type Shape = Rect | Circle | Line | Pencil | Eraser | Drag | Text;
