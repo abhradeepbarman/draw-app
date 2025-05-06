@@ -1,5 +1,6 @@
 import { PencilStrokes, Shape } from "@/@types/shape.types";
 import { deleteShapes, getPreviousChats, sendShape } from "@/api";
+import { text } from "stream/consumers";
 
 export class Draw {
     private canvas: HTMLCanvasElement;
@@ -22,11 +23,18 @@ export class Draw {
         y: 0,
         scale: 1,
     };
+    private textShape = {
+        x: 0,
+        y: 0,
+        text: "",
+    };
+    private toolChangeOnKeyPress: (shape: Shape["type"]) => void;
 
     constructor(
         canvas: HTMLCanvasElement,
         projectId: string,
-        socket: WebSocket
+        socket: WebSocket,
+        toolChangeOnKeyPress: (shape: Shape["type"]) => void
     ) {
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d")!;
@@ -36,6 +44,7 @@ export class Draw {
         this.init();
         this.initWebsocketHandlers();
         this.initMouseHandlers();
+        this.toolChangeOnKeyPress = toolChangeOnKeyPress;
     }
 
     destroy() {
@@ -47,6 +56,36 @@ export class Draw {
     }
 
     setTool(tool: Shape["type"]) {
+        // if there is a text which is not upload -> then upload first
+        if (this.textShape.text) {
+            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
+                this.textShape.x,
+                this.textShape.y
+            );
+
+            const message: Shape = {
+                type: "text",
+                startX: newStartX,
+                startY: newStartY,
+                text: this.textShape.text,
+            };
+
+            this.existingShapes.push(message);
+            this.clearCanvas();
+            const messageString = JSON.stringify(message);
+            sendShape(this.projectId, messageString).then(() => {
+                console.log("message sent");
+            });
+
+            this.socket.send(
+                JSON.stringify({
+                    type: "chat",
+                    roomId: this.projectId,
+                    message,
+                })
+            );
+        }
+
         this.selectedTool = tool;
     }
 
@@ -156,7 +195,7 @@ export class Draw {
         this.clearCanvas();
     };
 
-    mouseDownHandler = (e: MouseEvent) => {
+    mouseDownHandler = async (e: MouseEvent) => {
         this.clicked = true;
 
         var rect = this.canvas.getBoundingClientRect();
@@ -171,6 +210,40 @@ export class Draw {
 
         this.pencilStrokes = [];
         this.deletedShapes = [];
+
+        // if there is a text which is not upload -> then upload first
+        if (this.textShape.text) {
+            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
+                this.textShape.x,
+                this.textShape.y
+            );
+
+            const message: Shape = {
+                type: "text",
+                startX: newStartX,
+                startY: newStartY,
+                text: this.textShape.text,
+            };
+
+            this.existingShapes.push(message);
+            this.clearCanvas();
+            const messageString = JSON.stringify(message);
+            await sendShape(this.projectId, messageString);
+
+            this.socket.send(
+                JSON.stringify({
+                    type: "chat",
+                    roomId: this.projectId,
+                    message,
+                })
+            );
+        }
+
+        this.textShape = {
+            x: this.startX,
+            y: this.startY,
+            text: "",
+        };
     };
 
     mouseMoveHandler = (e: MouseEvent) => {
@@ -283,6 +356,9 @@ export class Draw {
                                 break;
                             }
                         }
+                    }
+
+                    if(shape.type === "text") {              
                     }
 
                     if (shouldDelete) {
@@ -436,19 +512,44 @@ export class Draw {
     };
 
     keyPressHandler = (e: KeyboardEvent) => {
-        // if (this.isTyping) {
-        //     this.typeShape.text += e.key;
+        if (this.selectedTool === "text") {
+            if (e.key === "Enter") {
+                //
+            } else {
+                this.textShape.text += e.key;
 
-        //     const { x, y } = this.toCanvasCoords(
-        //         this.typeShape.startX,
-        //         this.typeShape.startY
-        //     );
+                const { x: newStartX, y: newStartY } = this.toCanvasCoords(
+                    this.textShape.x,
+                    this.textShape.y
+                );
 
-        //     this.ctx.beginPath();
-        //     this.ctx.fillText(this.typeShape.text, x, y);
-        //     this.ctx.strokeText(this.typeShape.text, x, y);
-        //     this.clearCanvas();
-        // }
+                this.clearCanvas();
+                this.ctx.fillText(this.textShape.text, newStartX, newStartY);
+            }
+        }
+
+        if (e.key === "1") {
+            this.setTool("rect");
+            this.toolChangeOnKeyPress("rect");
+        } else if (e.key === "2") {
+            this.setTool("circle");
+            this.toolChangeOnKeyPress("circle");
+        } else if (e.key === "3") {
+            this.setTool("line");
+            this.toolChangeOnKeyPress("line");
+        } else if (e.key === "4") {
+            this.setTool("pencil");
+            this.toolChangeOnKeyPress("pencil");
+        } else if (e.key === "5") {
+            this.setTool("eraser");
+            this.toolChangeOnKeyPress("eraser");
+        } else if (e.key === "6") {
+            this.setTool("drag");
+            this.toolChangeOnKeyPress("drag");
+        } else if (e.key === "7") {
+            this.setTool("text");
+            this.toolChangeOnKeyPress("text");
+        }
     };
 
     isMatchingShape(shape: any, target: any) {
@@ -467,6 +568,7 @@ export class Draw {
             this.viewportTransform.y
         );
 
+        // make stroke/font according to zoom - so that its constant
         this.ctx.lineWidth = 1 / this.viewportTransform.scale;
 
         this.existingShapes.forEach((shape) => {
@@ -501,6 +603,8 @@ export class Draw {
                     this.ctx.lineTo(stroke.endX, stroke.endY);
                     this.ctx.stroke();
                 });
+            } else if (shape.type === "text") {
+                this.ctx.fillText(shape.text, shape.startX, shape.startY);
             }
         });
     }

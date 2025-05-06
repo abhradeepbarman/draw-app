@@ -25,12 +25,16 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
     useEffect(() => {
         if (canvasRef.current && socket) {
-            const d = new Draw(canvasRef.current, projectId, socket);
+            const d = new Draw(canvasRef.current, projectId, socket, toolChangeOnKeyPress);
             setDraw(d);
 
             return () => draw?.destroy();
         }
     }, [canvasRef, socket]);
+
+    function toolChangeOnKeyPress(shape: Shape["type"]) {
+        setSelectedTool(shape);
+    }
 
     return (
         <div className="relative">

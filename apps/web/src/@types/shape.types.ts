@@ -44,6 +44,8 @@ export interface Text {
     text: string;
     startX: number;
     startY: number;
+    // fontSize: number;
+    // fontStyle: string;
 }
 
 export interface Eraser {
