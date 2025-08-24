@@ -24,38 +24,38 @@ export interface Line {
     endY: number;
 }
 
-export interface PencilStrokes {
-    type: "pencilStrokes";
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-}
+// export interface PencilStrokes {
+//     type: "pencilStrokes";
+//     startX: number;
+//     startY: number;
+//     endX: number;
+//     endY: number;
+// }
 
-export interface Pencil {
-    id?: string;
-    type: "pencil";
-    strokes: PencilStrokes[];
-}
+// export interface Pencil {
+//     id?: string;
+//     type: "pencil";
+//     strokes: PencilStrokes[];
+// }
 
-export interface Text {
-    id?: string;
-    type: "text";
-    text: string;
-    startX: number;
-    startY: number;
-    // fontSize: number;
-    // fontStyle: string;
-}
+// export interface Text {
+//     id?: string;
+//     type: "text";
+//     text: string;
+//     startX: number;
+//     startY: number;
+//     fontSize: number;
+//     fontStyle: string;
+// }
 
 export interface Eraser {
     id?: string;
     type: "eraser";
 }
 
-export interface Drag {
-    id?: string;
-    type: "drag";
-}
+// export interface Drag {
+//     id?: string;
+//     type: "drag";
+// }
 
-export type Shape = Rect | Circle | Line | Pencil | Eraser | Drag | Text;
+export type Shape = Rect | Circle | Line | Eraser;

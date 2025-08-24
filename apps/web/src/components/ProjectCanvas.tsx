@@ -38,6 +38,12 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
     return (
         <div className="relative">
+            <div className="fixed top-5 w-full flex justify-center">
+                <Toolbar
+                    selectedTool={selectedTool}
+                    setSelectedTool={setSelectedTool}
+                />
+            </div>
             <canvas width={width} height={height} ref={canvasRef}></canvas>
             <div className="fixed bottom-5 w-full flex justify-center">
                 <Toolbar

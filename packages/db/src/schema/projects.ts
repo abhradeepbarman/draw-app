@@ -5,7 +5,7 @@ import chats from "./chats";
 
 const projects = pgTable("projects", {
     id: uuid("id").notNull().defaultRandom().primaryKey(),
-    name: varchar("name"),
+    name: varchar("name").default("New Project").notNull(),
     adminId: uuid("admin_id").references(() => users.id, {
         onUpdate: "no action",
         onDelete: "cascade",

@@ -1,6 +1,5 @@
-import { PencilStrokes, Shape } from "@/@types/shape.types";
+import { Shape } from "@/@types/shape.types";
 import { deleteShapes, getPreviousChats, sendShape } from "@/api";
-import { text } from "stream/consumers";
 
 export class Draw {
     private canvas: HTMLCanvasElement;
@@ -11,23 +10,8 @@ export class Draw {
     private clicked: Boolean = false;
     private startX: number = 0;
     private startY: number = 0;
-    private lastX: number = 0;
-    private lastY: number = 0;
-    private pencilStrokes: PencilStrokes[] = [];
     private deletedShapes: Shape[] = [];
     private selectedTool: Shape["type"] = "rect";
-    private previousX: number = 0;
-    private previousY: number = 0;
-    private viewportTransform = {
-        x: 0,
-        y: 0,
-        scale: 1,
-    };
-    private textShape = {
-        x: 0,
-        y: 0,
-        text: "",
-    };
     private toolChangeOnKeyPress: (shape: Shape["type"]) => void;
 
     constructor(
@@ -51,41 +35,10 @@ export class Draw {
         this.canvas.removeEventListener("mousedown", this.mouseDownHandler);
         this.canvas.removeEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.removeEventListener("mouseup", this.mouseUpHandler);
-        this.canvas.removeEventListener("wheel", this.mouseWheelHandler);
         window.removeEventListener("keypress", this.keyPressHandler);
     }
 
     setTool(tool: Shape["type"]) {
-        // if there is a text which is not upload -> then upload first
-        if (this.textShape.text) {
-            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
-                this.textShape.x,
-                this.textShape.y
-            );
-
-            const message: Shape = {
-                type: "text",
-                startX: newStartX,
-                startY: newStartY,
-                text: this.textShape.text,
-            };
-
-            this.existingShapes.push(message);
-            this.clearCanvas();
-            const messageString = JSON.stringify(message);
-            sendShape(this.projectId, messageString).then(() => {
-                console.log("message sent");
-            });
-
-            this.socket.send(
-                JSON.stringify({
-                    type: "chat",
-                    roomId: this.projectId,
-                    message,
-                })
-            );
-        }
-
         this.selectedTool = tool;
     }
 
@@ -128,17 +81,13 @@ export class Draw {
                 this.existingShapes.push(incomingMessage.message);
                 this.clearCanvas();
             } else if (incomingMessage.type === "delete_chat") {
+                //TODO: Delete logic Fix
                 this.existingShapes = this.existingShapes.filter((shape) => {
                     const { id: idOne, ...restShapeOne } = shape;
                     const { id: idTwo, ...restShapeTwo } =
                         incomingMessage.message;
                     return !this.isMatchingShape(restShapeOne, restShapeTwo);
                 });
-                this.clearCanvas();
-            } else if (incomingMessage.type === "drag") {
-                this.viewportTransform = {
-                    ...incomingMessage.viewportTransform,
-                };
                 this.clearCanvas();
             }
         };
@@ -148,52 +97,8 @@ export class Draw {
         this.canvas.addEventListener("mousedown", this.mouseDownHandler);
         this.canvas.addEventListener("mousemove", this.mouseMoveHandler);
         this.canvas.addEventListener("mouseup", this.mouseUpHandler);
-        this.canvas.addEventListener("wheel", this.mouseWheelHandler);
         window.addEventListener("keypress", this.keyPressHandler);
     }
-
-    updatePanning = (e: MouseEvent) => {
-        const localX = e.clientX;
-        const localY = e.clientY;
-
-        this.viewportTransform.x += localX - this.previousX;
-        this.viewportTransform.y += localY - this.previousY;
-
-        this.previousX = localX;
-        this.previousY = localY;
-    };
-
-    updateZooming = (e: WheelEvent) => {
-        const oldScale = this.viewportTransform.scale;
-        const delta = e.deltaY * -0.01;
-        const newScale = Math.max(0.1, Math.min(oldScale + delta, 10));
-
-        const rect = this.canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const scaleRatio = newScale / oldScale;
-
-        this.viewportTransform.x =
-            mouseX - (mouseX - this.viewportTransform.x) * scaleRatio;
-        this.viewportTransform.y =
-            mouseY - (mouseY - this.viewportTransform.y) * scaleRatio;
-        this.viewportTransform.scale = newScale;
-    };
-
-    mouseWheelHandler = (e: WheelEvent) => {
-        e.preventDefault();
-        this.updateZooming(e);
-
-        this.socket.send(
-            JSON.stringify({
-                type: "drag",
-                roomId: this.projectId,
-                viewportTransform: { ...this.viewportTransform },
-            })
-        );
-        this.clearCanvas();
-    };
 
     mouseDownHandler = async (e: MouseEvent) => {
         this.clicked = true;
@@ -202,48 +107,7 @@ export class Draw {
         this.startX = e.clientX - rect.left;
         this.startY = e.clientY - rect.top;
 
-        this.lastX = this.startX;
-        this.lastY = this.startY;
-
-        this.previousX = e.clientX;
-        this.previousY = e.clientY;
-
-        this.pencilStrokes = [];
         this.deletedShapes = [];
-
-        // if there is a text which is not upload -> then upload first
-        if (this.textShape.text) {
-            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
-                this.textShape.x,
-                this.textShape.y
-            );
-
-            const message: Shape = {
-                type: "text",
-                startX: newStartX,
-                startY: newStartY,
-                text: this.textShape.text,
-            };
-
-            this.existingShapes.push(message);
-            this.clearCanvas();
-            const messageString = JSON.stringify(message);
-            await sendShape(this.projectId, messageString);
-
-            this.socket.send(
-                JSON.stringify({
-                    type: "chat",
-                    roomId: this.projectId,
-                    message,
-                })
-            );
-        }
-
-        this.textShape = {
-            x: this.startX,
-            y: this.startY,
-            text: "",
-        };
     };
 
     mouseMoveHandler = (e: MouseEvent) => {
@@ -252,59 +116,30 @@ export class Draw {
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
 
-            const { x: newStartX, y: newStartY } = this.toCanvasCoords(
-                this.startX,
-                this.startY
-            );
-            const { x: newEndX, y: newEndY } = this.toCanvasCoords(endX, endY);
-
             if (this.selectedTool === "rect") {
-                const width = newEndX - newStartX;
-                const height = newEndY - newStartY;
+                const width = endX - this.startX;
+                const height = endY - this.startY;
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.rect(newStartX, newStartY, width, height);
+                this.ctx.rect(this.startX, this.startY, width, height);
                 this.ctx.stroke();
             } else if (this.selectedTool === "circle") {
                 const radius = Math.sqrt(
-                    Math.pow(newEndX - newStartX, 2) +
-                        Math.pow(newEndY - newStartY, 2)
+                    Math.pow(endX - this.startX, 2) +
+                        Math.pow(endY - this.startY, 2)
                 );
 
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.arc(newStartX, newStartY, radius, 0, 2 * Math.PI);
+                this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
                 this.ctx.stroke();
             } else if (this.selectedTool === "line") {
                 this.clearCanvas();
                 this.ctx.beginPath();
-                this.ctx.moveTo(newStartX, newStartY);
-                this.ctx.lineTo(newEndX, newEndY);
+                this.ctx.moveTo(this.startX, this.startY);
+                this.ctx.lineTo(endX, endY);
                 this.ctx.stroke();
-            } else if (this.selectedTool === "pencil") {
-                const { x: newLastX, y: newLastY } = this.toCanvasCoords(
-                    this.lastX,
-                    this.lastY
-                );
-
-                this.pencilStrokes.push({
-                    type: "pencilStrokes",
-                    startX: newLastX,
-                    startY: newLastY,
-                    endX: newEndX,
-                    endY: newEndY,
-                });
-
-                this.lastX = endX;
-                this.lastY = endY;
-                this.clearCanvas();
-                this.pencilStrokes.map((stroke) => {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(stroke.startX, stroke.startY);
-                    this.ctx.lineTo(stroke.endX, stroke.endY);
-                    this.ctx.stroke();
-                });
             } else if (this.selectedTool === "eraser") {
                 this.existingShapes.forEach((shape) => {
                     let shouldDelete = false;
@@ -343,24 +178,6 @@ export class Draw {
                         );
                     }
 
-                    if (shape.type === "pencil") {
-                        for (let i = 0; i < shape.strokes.length - 1; i++) {
-                            const p1 = shape.strokes[i];
-                            const p2 = shape.strokes[i + 1];
-                            const path = new Path2D();
-                            path.moveTo(p1.startX, p1.startY);
-                            path.lineTo(p2.startX, p2.startY);
-
-                            if (this.ctx.isPointInStroke(path, endX, endY)) {
-                                shouldDelete = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if(shape.type === "text") {              
-                    }
-
                     if (shouldDelete) {
                         this.deletedShapes.push(shape);
                         this.existingShapes = this.existingShapes.filter(
@@ -377,17 +194,6 @@ export class Draw {
                         );
                     }
                 });
-            } else if (this.selectedTool === "drag") {
-                this.updatePanning(e);
-                this.clearCanvas();
-
-                this.socket.send(
-                    JSON.stringify({
-                        type: "drag",
-                        roomId: this.projectId,
-                        viewportTransform: { ...this.viewportTransform },
-                    })
-                );
             }
         }
     };
@@ -399,24 +205,18 @@ export class Draw {
         const endX = e.clientX - rect.left;
         const endY = e.clientY - rect.top;
 
-        const { x: newStartX, y: newStartY } = this.toCanvasCoords(
-            this.startX,
-            this.startY
-        );
-        const { x: newEndX, y: newEndY } = this.toCanvasCoords(endX, endY);
-
         if (this.startX === endX && this.startY === endY) {
             return;
         }
 
         if (this.selectedTool === "rect") {
-            const width = newEndX - newStartX;
-            const height = newEndY - newStartY;
+            const width = endX - this.startX;
+            const height = endY - this.startY;
 
             const message: Shape = {
                 type: "rect",
-                startX: newStartX,
-                startY: newStartY,
+                startX: this.startX,
+                startY: this.startY,
                 width,
                 height,
             };
@@ -435,14 +235,14 @@ export class Draw {
             );
         } else if (this.selectedTool === "circle") {
             const radius = Math.sqrt(
-                Math.pow(newEndX - newStartX, 2) +
-                    Math.pow(newEndY - newStartY, 2)
+                Math.pow(endX - this.startX, 2) +
+                    Math.pow(endY - this.startY, 2)
             );
 
             const message: Shape = {
                 type: "circle",
-                startX: newStartX,
-                startY: newStartY,
+                startX: this.startX,
+                startY: this.startY,
                 radius,
             };
             this.existingShapes.push(message);
@@ -462,31 +262,13 @@ export class Draw {
         } else if (this.selectedTool === "line") {
             const message: Shape = {
                 type: "line",
-                startX: newStartX,
-                startY: newStartY,
-                endX: newEndX,
-                endY: newEndY,
+                startX: this.startX,
+                startY: this.startY,
+                endX,
+                endY,
             };
             this.existingShapes.push(message);
             this.clearCanvas();
-            const messageString = JSON.stringify(message);
-            await sendShape(this.projectId, messageString);
-
-            this.socket.send(
-                JSON.stringify({
-                    type: "chat",
-                    roomId: this.projectId,
-                    message,
-                })
-            );
-        } else if (this.selectedTool === "pencil") {
-            const message: Shape = {
-                type: "pencil",
-                strokes: this.pencilStrokes,
-            };
-            this.existingShapes.push(message);
-            this.clearCanvas();
-
             const messageString = JSON.stringify(message);
             await sendShape(this.projectId, messageString);
 
@@ -512,22 +294,6 @@ export class Draw {
     };
 
     keyPressHandler = (e: KeyboardEvent) => {
-        if (this.selectedTool === "text") {
-            if (e.key === "Enter") {
-                //
-            } else {
-                this.textShape.text += e.key;
-
-                const { x: newStartX, y: newStartY } = this.toCanvasCoords(
-                    this.textShape.x,
-                    this.textShape.y
-                );
-
-                this.clearCanvas();
-                this.ctx.fillText(this.textShape.text, newStartX, newStartY);
-            }
-        }
-
         if (e.key === "1") {
             this.setTool("rect");
             this.toolChangeOnKeyPress("rect");
@@ -538,17 +304,8 @@ export class Draw {
             this.setTool("line");
             this.toolChangeOnKeyPress("line");
         } else if (e.key === "4") {
-            this.setTool("pencil");
-            this.toolChangeOnKeyPress("pencil");
-        } else if (e.key === "5") {
             this.setTool("eraser");
             this.toolChangeOnKeyPress("eraser");
-        } else if (e.key === "6") {
-            this.setTool("drag");
-            this.toolChangeOnKeyPress("drag");
-        } else if (e.key === "7") {
-            this.setTool("text");
-            this.toolChangeOnKeyPress("text");
         }
     };
 
@@ -559,17 +316,6 @@ export class Draw {
     clearCanvas() {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.setTransform(
-            this.viewportTransform.scale,
-            0,
-            0,
-            this.viewportTransform.scale,
-            this.viewportTransform.x,
-            this.viewportTransform.y
-        );
-
-        // make stroke/font according to zoom - so that its constant
-        this.ctx.lineWidth = 1 / this.viewportTransform.scale;
 
         this.existingShapes.forEach((shape) => {
             if (shape.type === "rect") {
@@ -596,23 +342,7 @@ export class Draw {
                 this.ctx.moveTo(shape.startX, shape.startY);
                 this.ctx.lineTo(shape.endX!, shape.endY!);
                 this.ctx.stroke();
-            } else if (shape.type === "pencil") {
-                shape.strokes.map((stroke) => {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(stroke.startX, stroke.startY);
-                    this.ctx.lineTo(stroke.endX, stroke.endY);
-                    this.ctx.stroke();
-                });
-            } else if (shape.type === "text") {
-                this.ctx.fillText(shape.text, shape.startX, shape.startY);
             }
         });
-    }
-
-    toCanvasCoords(x: number, y: number) {
-        return {
-            x: (x - this.viewportTransform.x) / this.viewportTransform.scale,
-            y: (y - this.viewportTransform.y) / this.viewportTransform.scale,
-        };
     }
 }
