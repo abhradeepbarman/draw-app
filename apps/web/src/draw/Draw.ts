@@ -1,4 +1,4 @@
-import { Shape } from "@/@types/shape.types";
+import { Shape } from "@/@types/shapes";
 import { deleteShapes, getPreviousChats, sendShape } from "@/api";
 
 export class Draw {

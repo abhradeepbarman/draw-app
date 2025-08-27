@@ -14,7 +14,6 @@ export async function sendShape(projectId: string, message: string) {
         await axiosInstance.post(`/chat/${projectId}`, {
             message,
         });
-        return true;
     } catch (error) {
         console.log(error);
     }
@@ -27,7 +26,6 @@ export async function deleteShapes(projectId: string, shapes: string[]) {
                 chats: JSON.stringify(shapes),
             },
         });
-        return true;
     } catch (error) {
         console.log(error);
     }

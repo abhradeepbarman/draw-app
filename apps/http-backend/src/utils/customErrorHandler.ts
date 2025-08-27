@@ -9,8 +9,8 @@ class CustomErrorHandler extends Error {
         Object.setPrototypeOf(this, CustomErrorHandler.prototype);
     }
 
-    static alreadyExist(message: string): CustomErrorHandler {
-        return new CustomErrorHandler(409, message);
+    static badRequest(message: string = "400 Bad Request"): CustomErrorHandler {
+        return new CustomErrorHandler(400, message);
     }
 
     static wrongCredentials(
@@ -20,6 +20,10 @@ class CustomErrorHandler extends Error {
     }
 
     static unAuthorized(message: string = "unAuthorized"): CustomErrorHandler {
+        return new CustomErrorHandler(401, message);
+    }
+
+    static notAllowed(message: string = "403 Not Allowed"): CustomErrorHandler {
         return new CustomErrorHandler(403, message);
     }
 
@@ -27,8 +31,8 @@ class CustomErrorHandler extends Error {
         return new CustomErrorHandler(404, message);
     }
 
-    static notAllowed(message: string = "403 Not Allowed"): CustomErrorHandler {
-        return new CustomErrorHandler(401, message);
+    static alreadyExist(message: string): CustomErrorHandler {
+        return new CustomErrorHandler(409, message);
     }
 
     static serverError(

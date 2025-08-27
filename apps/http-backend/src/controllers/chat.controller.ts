@@ -1,26 +1,25 @@
 import { db } from "@repo/db";
 import { chats, projects } from "@repo/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
-import { NextFunction, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import ResponseHandler from "../utils/responseHandler";
+import CustomErrorHandler from "../utils/customErrorHandler";
 
 const chatController = {
     async getAllChats(
-        req: any,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise<any> {
         try {
             const { projectId } = req.params;
 
-            const room = await db.query.projects.findFirst({
+            const projectDetails = await db.query.projects.findFirst({
                 where: eq(projects.id, projectId!),
             });
 
-            if (!room) {
-                return res
-                    .status(404)
-                    .send(ResponseHandler(404, "Room not found"));
+            if (!projectDetails) {
+                return next(CustomErrorHandler.notFound("Project not found"));
             }
 
             const messages = await db.query.chats.findMany({
@@ -43,20 +42,26 @@ const chatController = {
         }
     },
 
-    async sendChat(req: any, res: Response, next: NextFunction): Promise<any> {
+    async sendChat(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<any> {
         try {
             const { projectId } = req.params;
             const { message } = req.body;
             const { id: userId } = req.user;
+
+            if (!message || !projectId) {
+                return next(CustomErrorHandler.badRequest());
+            }
 
             const projectDetails = await db.query.projects.findFirst({
                 where: eq(projects.id, projectId!),
             });
 
             if (!projectDetails) {
-                return res
-                    .status(404)
-                    .send(ResponseHandler(404, "Room not found"));
+                return next(CustomErrorHandler.notFound("Project not found"));
             }
 
             const [newChat] = await db
@@ -73,37 +78,31 @@ const chatController = {
     },
 
     async deleteChats(
-        req: any,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise<any> {
         try {
+            /**
+             * [chatID 1, chatID 2, chatID 3]
+             */
             const body = req.body;
             const { projectId } = req.params;
             const { id } = req.user;
 
-            const room = await db.query.projects.findFirst({
+            const projectDetails = await db.query.projects.findFirst({
                 where: eq(projects.id, projectId!),
             });
 
-            if (!room) {
-                return res
-                    .status(404)
-                    .send(ResponseHandler(404, "Room not found"));
+            if (!projectDetails) {
+                return next(CustomErrorHandler.notFound("Project not found"));
             }
 
-            if (room.adminId !== id) {
-                return res
-                    .status(403)
-                    .send(ResponseHandler(403, "You are not authorized"));
+            if (projectDetails.adminId !== id) {
+                return next(CustomErrorHandler.unAuthorized());
             }
 
             const jsonChats = JSON.parse(body.chats);
-
-            /**
-             * [chatID 1, chatID 2, chatID 3]
-             */
-
             await db.delete(chats).where(inArray(chats.id, jsonChats));
 
             return res

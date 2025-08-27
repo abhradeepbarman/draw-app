@@ -1,4 +1,4 @@
-import { Shape } from "@/@types/shape.types";
+import { Shape } from "@/@types/shapes";
 import { Circle, Eraser, Minus, Pen, Square, TextCursor } from "lucide-react";
 import React from "react";
 

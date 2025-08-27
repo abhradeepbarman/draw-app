@@ -1,14 +1,18 @@
 import config from "@repo/backend-common/config";
-import jwt from "jsonwebtoken";
-import { WebSocketServer } from "ws";
-import User from "./@types/user.types";
 import { db } from "@repo/db";
-import { chats, projects } from "@repo/db/schema";
-import { eq } from "drizzle-orm";
+import { projects } from "@repo/db/schema";
 import { parse } from "cookie";
+import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import { WebSocket, WebSocketServer } from "ws";
+
+interface User {
+    userId: string;
+    rooms: string[];
+    ws: WebSocket;
+}
 
 const wss = new WebSocketServer({ port: Number(config.PORT) });
-
 let users: User[] = [];
 
 const checkUser = (token: string) => {
@@ -194,25 +198,9 @@ wss.on("connection", function connection(ws, request) {
                 console.log(error);
             }
         }
-
-        if (parsedData.type === "drag") {
-            users.forEach((user) => {
-                if (user.rooms.includes(parsedData.roomId) && user.ws !== ws) {
-                    user.ws.send(JSON.stringify({
-                        type: "drag",
-                        roomId: parsedData.roomId!,
-                        viewportTransform: {
-                            x: parsedData.viewportTransform.x,
-                            y: parsedData.viewportTransform.y,
-                            scale: parsedData.viewportTransform.scale,
-                        },
-                    }));
-                }
-            });
-        }
     });
 
-    ws.on("close", function close(e) {
+    ws.on("close", () => {
         const user = users.find((user) => user.ws === ws);
         if (!user) {
             return;

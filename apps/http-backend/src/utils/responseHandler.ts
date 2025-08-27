@@ -8,7 +8,7 @@ function ResponseHandler(
         status,
         message,
         data,
-        success: status >= 200 && status < 400,
+        success,
     };
 }
 

@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import ResponseHandler from "../utils/responseHandler";
+import CustomErrorHandler from "../utils/customErrorHandler";
 
 const generateTokens = (userId: string) => {
     const accessToken = jwt.sign({ id: userId }, config.ACCESS_SECRET, {
@@ -33,9 +34,9 @@ const authControllers = {
             });
 
             if (existingUser) {
-                return res
-                    .status(409)
-                    .send(ResponseHandler(409, "User already exists"));
+                return next(
+                    CustomErrorHandler.badRequest("User already exists")
+                );
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -88,9 +89,7 @@ const authControllers = {
             });
 
             if (!user) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "User not found"));
+                return next(CustomErrorHandler.notFound("User not found"));
             }
 
             const isPasswordValid = await bcrypt.compare(
@@ -99,9 +98,7 @@ const authControllers = {
             );
 
             if (!isPasswordValid) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "Invalid password"));
+                return next(CustomErrorHandler.unAuthorized());
             }
 
             const { accessToken, refreshToken } = generateTokens(user.id);
@@ -161,9 +158,7 @@ const authControllers = {
             const token = req.cookies.refreshToken;
 
             if (!token) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "Unauthorized access"));
+                return next(CustomErrorHandler.unAuthorized());
             }
 
             const decoded = jwt.verify(token, config.REFRESH_SECRET) as {
@@ -171,9 +166,7 @@ const authControllers = {
             };
 
             if (!decoded) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "Unauthorized access"));
+                return next(CustomErrorHandler.unAuthorized());
             }
 
             const user = await db.query.users.findFirst({
@@ -181,9 +174,7 @@ const authControllers = {
             });
 
             if (!user) {
-                return res
-                    .status(401)
-                    .send(ResponseHandler(401, "Unauthorized access"));
+                return next(CustomErrorHandler.unAuthorized());
             }
 
             const { accessToken, refreshToken } = generateTokens(user.id);

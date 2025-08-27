@@ -1,5 +1,5 @@
 "use client";
-import { Shape } from "@/@types/shape.types";
+import { Shape } from "@/@types/shapes";
 import { Draw } from "@/draw/Draw";
 import useDeviceSize from "@/hooks/useDeviceSize";
 import { useSocket } from "@/hooks/useSocket";
@@ -25,7 +25,12 @@ const ProjectCanvas = ({ projectId }: { projectId: string }) => {
 
     useEffect(() => {
         if (canvasRef.current && socket) {
-            const d = new Draw(canvasRef.current, projectId, socket, toolChangeOnKeyPress);
+            const d = new Draw(
+                canvasRef.current,
+                projectId,
+                socket,
+                toolChangeOnKeyPress
+            );
             setDraw(d);
 
             return () => draw?.destroy();

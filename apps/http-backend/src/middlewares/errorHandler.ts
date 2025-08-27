@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from "express";
-import { ZodError } from "zod";
-import { formatError } from "../service/formatError";
-import CustomErrorHandler from "./../utils/customErrorHandler";
-import ResponseHandler from "../utils/responseHandler";
+import { NextFunction, Request, Response } from "express";
 import { JsonWebTokenError } from "jsonwebtoken";
+import { ZodError } from "zod";
+import { formatError } from "../utils/formatError";
+import ResponseHandler from "../utils/responseHandler";
+import CustomErrorHandler from "./../utils/customErrorHandler";
 
 const errorHandler = (
     err: Error,
@@ -13,16 +13,16 @@ const errorHandler = (
 ) => {
     let statusCode = 500;
     let message: any = "Internal Server Error";
-    
-    console.log("error", err)
-    
+
+    console.log("error", err);
+
     if (err instanceof ZodError) {
         statusCode = 422;
         message = formatError(err);
     }
 
     if (err instanceof JsonWebTokenError) {
-        statusCode = 403;
+        statusCode = 401;
         message = "Unauthorized";
     }
 
