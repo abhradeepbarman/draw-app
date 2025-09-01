@@ -8,7 +8,7 @@ type Props = {
 };
 
 async function Canvas({ params }: Props) {
-	const { projectId } = params;
+	const { projectId } = await params;
 	return <ProjectCanvas projectId={projectId} />;
 }
 
