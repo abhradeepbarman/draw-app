@@ -2,11 +2,13 @@ import React from "react";
 import ProjectCanvas from "./_components/ProjectCanvas";
 
 type Props = {
-	projectId: string;
+	params: {
+		projectId: string;
+	};
 };
 
-async function Canvas(params: Promise<Props>) {
-	const { projectId } = await params;
+async function Canvas({ params }: Props) {
+	const { projectId } = params;
 	return <ProjectCanvas projectId={projectId} />;
 }
 
