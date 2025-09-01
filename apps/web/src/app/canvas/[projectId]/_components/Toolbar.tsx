@@ -1,7 +1,7 @@
 import { Shape } from "@/@types/shapes";
 import { Draw } from "@/draw/Draw";
 import { useKeyboard } from "@/hooks/useKeyboard";
-import { Circle, Eraser, Minus, Square, Type } from "lucide-react";
+import { Circle, Eraser, Minus, Pencil, Square, Type } from "lucide-react";
 import React from "react";
 
 const Toolbar = ({
@@ -33,6 +33,10 @@ const Toolbar = ({
 		},
 		{
 			shortcuts: ["4"],
+			callback: () => changeTool("pencil"),
+		},
+		{
+			shortcuts: ["5"],
 			callback: () => changeTool("eraser"),
 		},
 	]);
@@ -67,12 +71,21 @@ const Toolbar = ({
 				</span>
 			</div>
 			<div
+				className={`cursor-pointer ${selectedTool === "pencil" && "text-blue-500"} relative py-3`}
+				onClick={() => changeTool("pencil")}
+			>
+				<Pencil />
+				<span className="absolute bottom-1 -right-2 text-white text-[10px]">
+					4
+				</span>
+			</div>
+			<div
 				className={`cursor-pointer ${selectedTool === "eraser" && "text-blue-500"} relative py-3`}
 				onClick={() => changeTool("eraser")}
 			>
 				<Eraser />
 				<span className="absolute bottom-1 -right-2 text-white text-[10px]">
-					4
+					5
 				</span>
 			</div>
 		</div>

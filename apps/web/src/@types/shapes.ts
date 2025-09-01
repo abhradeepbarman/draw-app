@@ -32,9 +32,18 @@ export interface Text {
 	text: string;
 }
 
+export interface Pencil {
+	id: string;
+	type: "pencil";
+	strokes: {
+		x: number;
+		y: number;
+	}[];
+}
+
 export interface Eraser {
 	id: string;
 	type: "eraser";
 }
 
-export type Shape = Rect | Circle | Line | Text | Eraser;
+export type Shape = Rect | Circle | Line | Text | Pencil | Eraser;

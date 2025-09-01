@@ -11,9 +11,12 @@ export class Draw {
 	private clicked: Boolean = false;
 	private startX: number = 0;
 	private startY: number = 0;
+	private pencilStrokes: {
+		x: number;
+		y: number;
+	}[] = [];
 	private deletedShapes: Shape[] = [];
 	private selectedTool: Shape["type"] = "rect";
-	private fontSize: number = 30;
 
 	constructor(canvas: HTMLCanvasElement, projectId: string, socket: WebSocket) {
 		this.canvas = canvas;
@@ -39,8 +42,7 @@ export class Draw {
 	async init() {
 		this.ctx.strokeStyle = "white";
 		this.ctx.fillStyle = "white";
-		this.ctx.font = `${this.fontSize}px arial`;
-		this.ctx.textBaseline = "top";
+		this.ctx.lineWidth = 2;
 
 		const res = await getPreviousChats(this.projectId);
 		if (res.length > 0) {
@@ -97,47 +99,15 @@ export class Draw {
 		this.startX = e.clientX - rect.left;
 		this.startY = e.clientY - rect.top;
 
-		if (this.selectedTool === "text") {
-			const inputX = this.startX;
-			const inputY = this.startY;
-
-			const inputBox = document.createElement("textarea");
-			inputBox.style.position = "absolute";
-			inputBox.style.font = `${this.fontSize}px arial`;
-			inputBox.style.color = "white";
-			inputBox.style.left = inputX + "px";
-			inputBox.style.top = inputY + "px";
-			inputBox.style.border = "none";
-			inputBox.style.outline = "none";
-
-			// height & width of textarea box will be from current position to the end of the screen
-			inputBox.style.width = "250px";
-			inputBox.style.height = "300px";
-
-			document.body.appendChild(inputBox);
-			setTimeout(() => {
-				inputBox.focus();
-			}, 0);
-
-			inputBox.onblur = () => {
-				const message: Shape = {
-					id: uuidv4(),
-					type: "text",
-					startX: inputX,
-					startY: inputY,
-					text: inputBox.value,
-				};
-				if (inputBox.value.trim() !== "") {
-					this.existingShapes.push(message);
-					const messageString = JSON.stringify(message);
-					sendShape(this.projectId, messageString);
-					this.clearCanvas();
-				}
-				document.body.removeChild(inputBox);
-			};
-		}
-
 		this.deletedShapes = [];
+		this.pencilStrokes = [];
+
+		if (this.selectedTool === "pencil") {
+			this.pencilStrokes.push({
+				x: this.startX,
+				y: this.startY,
+			});
+		}
 	};
 
 	mouseMoveHandler = (e: MouseEvent) => {
@@ -182,6 +152,26 @@ export class Draw {
 						);
 						this.clearCanvas();
 						this.drawDeletedShape(shape);
+					}
+				});
+			} else if (this.selectedTool === "pencil") {
+				this.pencilStrokes.push({
+					x: endX,
+					y: endY,
+				});
+
+				this.pencilStrokes.map((stroke, index) => {
+					if (index >= 1) {
+						this.ctx.beginPath();
+						this.ctx.moveTo(
+							this.pencilStrokes[index - 1].x,
+							this.pencilStrokes[index - 1].y
+						);
+						this.ctx.lineTo(
+							this.pencilStrokes[index].x,
+							this.pencilStrokes[index].y
+						);
+						this.ctx.stroke();
 					}
 				});
 			}
@@ -297,6 +287,25 @@ export class Draw {
 				);
 			}
 			this.clearCanvas();
+		} else if (this.selectedTool === "pencil") {
+			const message: Shape = {
+				id,
+				type: "pencil",
+				strokes: this.pencilStrokes,
+			};
+
+			this.existingShapes.push(message);
+			this.clearCanvas();
+			const messageString = JSON.stringify(message);
+			await sendShape(this.projectId, messageString);
+
+			this.socket.send(
+				JSON.stringify({
+					type: "chat",
+					roomId: this.projectId,
+					message,
+				})
+			);
 		}
 	};
 
@@ -319,8 +328,23 @@ export class Draw {
 			case "line":
 				const linePath = new Path2D();
 				linePath.moveTo(shape.startX, shape.startY);
-				linePath.lineTo(shape.endX!, shape.endY!);
-				return this.ctx.isPointInPath(linePath, x, y);
+				linePath.lineTo(shape.endX, shape.endY);
+				this.ctx.lineWidth = 2;
+				return this.ctx.isPointInStroke(linePath, x, y);
+			case "pencil":
+				this.ctx.save();
+				for (let i = 1; i < shape.strokes.length; i++) {
+					const linePath = new Path2D();
+					linePath.moveTo(shape.strokes[i - 1].x, shape.strokes[i - 1].y);
+					linePath.lineTo(shape.strokes[i].x, shape.strokes[i].y);
+
+					if (this.ctx.isPointInStroke(linePath, x, y)) {
+						this.ctx.restore();
+						return true;
+					}
+				}
+				this.ctx.restore();
+				return false;
 			default:
 				break;
 		}
@@ -351,10 +375,25 @@ export class Draw {
 				this.ctx.lineTo(shape.endX!, shape.endY!);
 				this.ctx.stroke();
 				break;
+			case "pencil":
+				if (shape.strokes.length > 1) {
+					shape.strokes.map((_, index) => {
+						if (index >= 1) {
+							this.ctx.beginPath();
+							this.ctx.moveTo(
+								shape.strokes[index - 1].x,
+								shape.strokes[index - 1].y
+							);
+							this.ctx.lineTo(shape.strokes[index].x, shape.strokes[index].y);
+							this.ctx.stroke();
+						}
+					});
+				}
 			default:
 				break;
 		}
 		this.ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+		this.ctx.lineWidth = 2;
 	}
 
 	clearCanvas() {
@@ -380,6 +419,20 @@ export class Draw {
 				this.ctx.moveTo(shape.startX, shape.startY);
 				this.ctx.lineTo(shape.endX!, shape.endY!);
 				this.ctx.stroke();
+			} else if (shape.type === "pencil") {
+				if (shape.strokes.length > 1) {
+					shape.strokes.map((_, index) => {
+						if (index >= 1) {
+							this.ctx.beginPath();
+							this.ctx.moveTo(
+								shape.strokes[index - 1].x,
+								shape.strokes[index - 1].y
+							);
+							this.ctx.lineTo(shape.strokes[index].x, shape.strokes[index].y);
+							this.ctx.stroke();
+						}
+					});
+				}
 			}
 		});
 	}
