@@ -1,19 +1,18 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import config from "@repo/backend-common/config";
-import { chats, projects, users } from "./schema";
-import { usersRelations } from "./schema/users";
-import { chatsRelations } from "./schema/chats";
-import { projectsRelations } from "./schema/projects";
+import users, { usersRelations } from "./schemas/users";
+import projects, { projectsRelations } from "./schemas/projects";
+import chats, { chatsRelations } from "./schemas/chats";
 
 const schema = {
-    users,
-    projects,
-    chats,
+	users,
+	projects,
+	chats,
 
-    usersRelations,
-    projectsRelations,
-    chatsRelations,
+	usersRelations,
+	projectsRelations,
+	chatsRelations,
 };
 
 const client = postgres(config.DB_URL);

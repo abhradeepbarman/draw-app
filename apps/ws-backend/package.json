@@ -1,29 +1,30 @@
 {
-    "name": "ws-backend",
-    "version": "1.0.0",
-    "main": "index.js",
-    "scripts": {
-        "dev": "tsx src/index.ts",
-        "build": "tsc",
-        "start": "tsc && node dist/index.js"
-    },
-    "devDependencies": {
-        "@repo/typescript-config": "workspace:*",
-        "@types/jsonwebtoken": "^9.0.9",
-        "@types/ws": "^8.18.1",
-        "tsx": "^4.19.3"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description": "",
-    "dependencies": {
-        "@repo/backend-common": "workspace:*",
-        "@repo/db": "workspace:*",
-        "cookie": "^1.0.2",
-        "dotenv": "^16.4.7",
-        "drizzle-orm": "^0.41.0",
-        "jsonwebtoken": "^9.0.2",
-        "ws": "^8.18.1"
-    }
+	"name": "ws-backend",
+	"version": "1.0.0",
+	"main": "index.js",
+	"scripts": {
+		"dev": "tsx src/index.ts",
+		"build": "tsc",
+		"start": "tsc && node dist/index.js"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/jsonwebtoken": "^9.0.9",
+		"@types/ws": "^8.18.1",
+		"tsx": "^4.19.3",
+		"@repo/db": "workspace:*"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"@repo/backend-common": "workspace:*",
+		"@repo/db": "workspace:*",
+		"cookie": "^1.0.2",
+		"dotenv": "^16.4.7",
+		"drizzle-orm": "^0.41.0",
+		"jsonwebtoken": "^9.0.2",
+		"ws": "^8.18.1"
+	}
 }

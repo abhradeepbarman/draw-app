@@ -1,117 +1,113 @@
 import { db } from "@repo/db";
-import { chats, projects } from "@repo/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
-import ResponseHandler from "../utils/responseHandler";
 import CustomErrorHandler from "../utils/customErrorHandler";
+import ResponseHandler from "../utils/responseHandler";
+import { projects, chats } from "@repo/db/schemas";
 
 const chatController = {
-    async getAllChats(
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<any> {
-        try {
-            const { projectId } = req.params;
+	async getAllChats(
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<any> {
+		try {
+			const { projectId } = req.params;
 
-            const projectDetails = await db.query.projects.findFirst({
-                where: eq(projects.id, projectId!),
-            });
+			const projectDetails = await db.query.projects.findFirst({
+				where: eq(projects.id, projectId!),
+			});
 
-            if (!projectDetails) {
-                return next(CustomErrorHandler.notFound("Project not found"));
-            }
+			if (!projectDetails) {
+				return next(CustomErrorHandler.notFound("Project not found"));
+			}
 
-            const messages = await db.query.chats.findMany({
-                where: eq(chats.projectId, projectId!),
-                limit: 50,
-                orderBy: desc(chats.createdAt),
-            });
+			const messages = await db.query.chats.findMany({
+				where: eq(chats.projectId, projectId!),
+				limit: 50,
+				orderBy: desc(chats.createdAt),
+			});
 
-            return res
-                .status(200)
-                .send(
-                    ResponseHandler(
-                        200,
-                        "Messages fetched successfully",
-                        messages
-                    )
-                );
-        } catch (error) {
-            return next(error);
-        }
-    },
+			return res
+				.status(200)
+				.send(ResponseHandler(200, "Messages fetched successfully", messages));
+		} catch (error) {
+			return next(error);
+		}
+	},
 
-    async sendChat(
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<any> {
-        try {
-            const { projectId } = req.params;
-            const { message } = req.body;
-            const { id: userId } = req.user;
+	async sendChat(
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<any> {
+		try {
+			const { projectId } = req.params;
+			const { message } = req.body;
+			const { id: userId } = req.user;
 
-            if (!message || !projectId) {
-                return next(CustomErrorHandler.badRequest());
-            }
+			if (!message || !projectId) {
+				return next(CustomErrorHandler.badRequest());
+			}
 
-            const projectDetails = await db.query.projects.findFirst({
-                where: eq(projects.id, projectId!),
-            });
+			const projectDetails = await db.query.projects.findFirst({
+				where: eq(projects.id, projectId!),
+			});
 
-            if (!projectDetails) {
-                return next(CustomErrorHandler.notFound("Project not found"));
-            }
+			if (!projectDetails) {
+				return next(CustomErrorHandler.notFound("Project not found"));
+			}
 
-            const [newChat] = await db
-                .insert(chats)
-                .values({ projectId, message, userId })
-                .returning();
+			const messageObj = JSON.parse(message);
 
-            return res
-                .status(201)
-                .send(ResponseHandler(201, "Chat sent successfully", newChat));
-        } catch (error) {
-            return next(error);
-        }
-    },
+			const [newChat] = await db
+				.insert(chats)
+				.values({ id: messageObj.id, projectId, message, userId })
+				.returning();
 
-    async deleteChats(
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<any> {
-        try {
-            /**
-             * [chatID 1, chatID 2, chatID 3]
-             */
-            const body = req.body;
-            const { projectId } = req.params;
-            const { id } = req.user;
+			return res
+				.status(201)
+				.send(ResponseHandler(201, "Chat sent successfully", newChat));
+		} catch (error) {
+			return next(error);
+		}
+	},
 
-            const projectDetails = await db.query.projects.findFirst({
-                where: eq(projects.id, projectId!),
-            });
+	async deleteChats(
+		req: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<any> {
+		try {
+			/**
+			 * [chatID 1, chatID 2, chatID 3]
+			 */
+			const body = req.body;
+			const { projectId } = req.params;
+			const { id } = req.user;
 
-            if (!projectDetails) {
-                return next(CustomErrorHandler.notFound("Project not found"));
-            }
+			const projectDetails = await db.query.projects.findFirst({
+				where: eq(projects.id, projectId!),
+			});
 
-            if (projectDetails.adminId !== id) {
-                return next(CustomErrorHandler.unAuthorized());
-            }
+			if (!projectDetails) {
+				return next(CustomErrorHandler.notFound("Project not found"));
+			}
 
-            const jsonChats = JSON.parse(body.chats);
-            await db.delete(chats).where(inArray(chats.id, jsonChats));
+			if (projectDetails.adminId !== id) {
+				return next(CustomErrorHandler.unAuthorized());
+			}
 
-            return res
-                .status(200)
-                .send(ResponseHandler(200, "Chats deleted successfully"));
-        } catch (error) {
-            return next(error);
-        }
-    },
+			const jsonChats = JSON.parse(body.chats);
+			await db.delete(chats).where(inArray(chats.id, jsonChats));
+
+			return res
+				.status(200)
+				.send(ResponseHandler(200, "Chats deleted successfully"));
+		} catch (error) {
+			return next(error);
+		}
+	},
 };
 
 export default chatController;

@@ -71,6 +71,13 @@
       "when": 1756056796339,
       "tag": "0009_tiresome_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1756455216981,
+      "tag": "0010_low_wiccan",
+      "breakpoints": true
     }
   ]
 }

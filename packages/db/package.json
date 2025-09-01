@@ -1,25 +1,27 @@
 {
-    "name": "@repo/db",
-    "version": "1.0.0",
-    "main": "index.js",
-    "scripts": {
-        "db:generate": "npx drizzle-kit generate",
-        "db:migrate": "npx drizzle-kit migrate"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description": "",
-    "dependencies": {
-        "drizzle-orm": "^0.41.0",
-        "postgres": "^3.4.5",
-        "@repo/backend-common": "workspace:*"
-    },
-    "devDependencies": {
-        "drizzle-kit": "^0.30.6"
-    },
-    "exports": {
-        ".": "./src/index.ts",
-        "./schema": "./src/schema/index.ts"
-    }
+	"name": "@repo/db",
+	"version": "1.0.0",
+	"scripts": {
+		"db:generate": "npx drizzle-kit --config ./src/drizzle.config.ts generate",
+		"db:migrate": "npx drizzle-kit --config ./src/drizzle.config.ts migrate",
+		"build": "tsc"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"@repo/backend-common": "workspace:*",
+		"@repo/typescript-config": "workspace:*",
+		"drizzle-orm": "^0.41.0",
+		"postgres": "^3.4.5"
+	},
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"drizzle-kit": "^0.30.6"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./schemas": "./src/schemas/index.ts"
+	}
 }

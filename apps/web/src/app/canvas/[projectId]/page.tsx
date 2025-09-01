@@ -1,9 +1,13 @@
-import ProjectCanvas from "@/components/ProjectCanvas";
+import React from "react";
+import ProjectCanvas from "./_components/ProjectCanvas";
 
-const Page = async ({ params }: { params: { projectId: string } }) => {
-    const { projectId } = await params;
-
-    return <ProjectCanvas projectId={projectId} />;
+type Props = {
+	projectId: string;
 };
 
-export default Page;
+async function Canvas(params: Promise<Props>) {
+	const { projectId } = await params;
+	return <ProjectCanvas projectId={projectId} />;
+}
+
+export default Canvas;
