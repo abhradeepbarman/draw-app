@@ -1,7 +1,14 @@
-import { Shape } from "@/@types/shapes";
+import { Tool } from "@/@types/tools";
 import { Draw } from "@/draw/Draw";
 import { useKeyboard } from "@/hooks/useKeyboard";
-import { Circle, Eraser, Minus, Pencil, Square, Type } from "lucide-react";
+import {
+	Circle,
+	Eraser,
+	Minus,
+	MousePointer,
+	Pencil,
+	Square,
+} from "lucide-react";
 import React from "react";
 
 const Toolbar = ({
@@ -9,11 +16,11 @@ const Toolbar = ({
 	setSelectedTool,
 	draw,
 }: {
-	selectedTool: Shape["type"];
-	setSelectedTool: React.Dispatch<React.SetStateAction<Shape["type"]>>;
+	selectedTool: Tool["type"];
+	setSelectedTool: React.Dispatch<React.SetStateAction<Tool["type"]>>;
 	draw: Draw | null;
 }) => {
-	const changeTool = (tool: Shape["type"]) => {
+	const changeTool = (tool: Tool["type"]) => {
 		setSelectedTool(tool);
 		draw?.setTool(tool);
 	};
@@ -38,6 +45,10 @@ const Toolbar = ({
 		{
 			shortcuts: ["5"],
 			callback: () => changeTool("eraser"),
+		},
+		{
+			shortcuts: ["6"],
+			callback: () => changeTool("move"),
 		},
 	]);
 
@@ -86,6 +97,15 @@ const Toolbar = ({
 				<Eraser />
 				<span className="absolute bottom-1 -right-2 text-white text-[10px]">
 					5
+				</span>
+			</div>
+			<div
+				className={`cursor-pointer ${selectedTool === "move" && "text-blue-500"} relative py-3`}
+				onClick={() => changeTool("move")}
+			>
+				<MousePointer />
+				<span className="absolute bottom-1 -right-2 text-white text-[10px]">
+					6
 				</span>
 			</div>
 		</div>

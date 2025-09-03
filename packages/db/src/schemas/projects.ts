@@ -2,6 +2,7 @@ import { pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import users from "./users";
 import { relations } from "drizzle-orm";
 import chats from "./chats";
+import redirects from "./redirects";
 
 const projects = pgTable("projects", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
@@ -20,6 +21,10 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 		references: [users.id],
 	}),
 	chats: many(chats),
+	redirects: one(redirects, {
+		fields: [projects.id],
+		references: [redirects.projectId],
+	}),
 }));
 
 export default projects;

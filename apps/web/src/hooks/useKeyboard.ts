@@ -44,9 +44,9 @@ export function useKeyboard(
 
 					if (keySet.size === 0 || keySet.has(mainKey)) {
 						event.preventDefault();
-						callback(event, shortcut); // Run item-specific callback
+						callback(event, shortcut);
 						globalCallback?.(event, shortcut); // Run global callback if exists
-						return; // Stop after first match
+						return;
 					}
 				}
 			}

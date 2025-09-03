@@ -198,6 +198,44 @@ wss.on("connection", function connection(ws, request) {
 				console.log(error);
 			}
 		}
+
+		if (parsedData.type === "move") {
+			/**
+			 * {
+			 *  type: "move",
+			 *  roomId: string,
+			 *  message: string
+			 * }
+			 */
+
+			try {
+				const roomId = parsedData.roomId;
+				const message = parsedData.message;
+
+				// check if room exists
+				const room = await db.query.projects.findFirst({
+					where: eq(projects.id, parsedData.roomId),
+				});
+
+				if (!room) {
+					return;
+				}
+
+				users.forEach((user) => {
+					if (user.rooms.includes(roomId) && user.ws !== ws) {
+						user.ws.send(
+							JSON.stringify({
+								type: "move",
+								roomId,
+								message,
+							})
+						);
+					}
+				});
+			} catch (error) {
+				console.log(error);
+			}
+		}
 	});
 
 	ws.on("close", () => {

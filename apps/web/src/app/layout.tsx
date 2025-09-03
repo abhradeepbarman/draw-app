@@ -8,6 +8,11 @@ const inter = Inter({
 	subsets: ["latin"],
 });
 
+export const metadata = {
+	title: "Drawlio - Collaborative Drawing Platform",
+	description: "draw with your team",
+};
+
 export default function RootLayout({
 	children,
 }: Readonly<{

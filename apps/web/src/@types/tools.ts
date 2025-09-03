@@ -46,4 +46,9 @@ export interface Eraser {
 	type: "eraser";
 }
 
-export type Shape = Rect | Circle | Line | Text | Pencil | Eraser;
+export interface Move {
+	id: string;
+	type: "move";
+}
+
+export type Tool = Rect | Circle | Line | Text | Pencil | Eraser | Move;

@@ -5,11 +5,6 @@ import HeroSection from "./_components/hero";
 import Navbar from "./_components/navbar";
 import Pricing from "./_components/pricing";
 
-export const metadata = {
-	title: "Drawlio - Collaborative Drawing Platform",
-	description: "draw with your team",
-};
-
 export default function Index() {
 	return (
 		<div className="min-h-screen bg-gray-900">

@@ -78,6 +78,13 @@
       "when": 1756455216981,
       "tag": "0010_low_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1756891665714,
+      "tag": "0011_steep_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

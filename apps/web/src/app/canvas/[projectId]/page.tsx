@@ -1,15 +1,25 @@
 import React from "react";
-import ProjectCanvas from "./_components/ProjectCanvas";
+import ProjectCanvas from "./_components/project-canvas";
 
-type Props = {
-	params: {
-		projectId: string;
-	};
-};
+interface ParamsProps {
+	projectId: string;
+}
 
-async function Canvas({ params }: Props) {
+interface SearchParams {
+	redirect: string;
+}
+
+async function Canvas({
+	params,
+	searchParams,
+}: {
+	params: Promise<ParamsProps>;
+	searchParams: Promise<SearchParams>;
+}) {
 	const { projectId } = await params;
-	return <ProjectCanvas projectId={projectId} />;
+	const { redirect } = await searchParams;
+
+	return <ProjectCanvas projectId={projectId} redirect={redirect == "true"} />;
 }
 
 export default Canvas;
