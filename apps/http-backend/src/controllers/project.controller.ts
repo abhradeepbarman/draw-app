@@ -1,10 +1,11 @@
 import { db } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NextFunction, Request, Response } from "express";
 import CustomErrorHandler from "../utils/customErrorHandler";
 import ResponseHandler from "../utils/responseHandler";
 import { projects, redirects } from "@repo/db/schemas";
 import config from "@repo/backend-common/config";
+import { desc } from "drizzle-orm";
 
 const projectControllers = {
 	async createProject(
@@ -74,16 +75,39 @@ const projectControllers = {
 	): Promise<any> {
 		try {
 			const { id } = req.user;
+			const page = req.query.page ? Number(req.query.page) : 1;
+			const limit = req.query.limit ? Number(req.query.limit) : 7;
+			const offset = (page - 1) * limit;
+
+			// fetch total count
+			const [total] = await db
+				.select({ count: sql<number>`count(*)` })
+				.from(projects)
+				.where(eq(projects.adminId, id!));
+
+			if (!total) {
+				return next(CustomErrorHandler.notFound("Projects not found"));
+			}
 
 			const allProjects = await db.query.projects.findMany({
 				where: eq(projects.adminId, id!),
+				orderBy: desc(projects.createdAt),
+				limit,
+				offset,
 			});
 
-			return res
-				.status(200)
-				.send(
-					ResponseHandler(200, "Projects fetched successfully", allProjects)
-				);
+			if (!allProjects) {
+				return next(CustomErrorHandler.notFound("Projects not found"));
+			}
+
+			return res.status(200).send(
+				ResponseHandler(200, "Projects fetched successfully", {
+					projects: allProjects,
+					totalPages: Math.ceil(total.count / limit),
+					page,
+					limit,
+				})
+			);
 		} catch (error) {
 			return next(error);
 		}
